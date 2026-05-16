@@ -17,6 +17,7 @@ import {
   calcGlobalMaxStreak,
   calcCompletedToday,
   calcLevel,
+  isStreakBroken,
 } from '../utils/helpers';
 import HabitCard from '../components/HabitCard';
 import AddHabitModal from '../components/AddHabitModal';
@@ -41,6 +42,7 @@ export default function DashboardScreen() {
 
   const today = getTodayStr();
   const streak = calcGlobalMaxStreak(ctx.habits);
+  const streakBroke = isStreakBroken(ctx.habits);
   const completed = calcCompletedToday(ctx.habits, today);
   const total = ctx.habits.length;
   const percentage = total === 0 ? 0 : Math.round((completed / total) * 100);
@@ -137,6 +139,7 @@ export default function DashboardScreen() {
           <MascotCard
             percentage={percentage}
             streak={streak}
+            streakBroken={streakBroke}
             level={level}
             colors={colors}
           />

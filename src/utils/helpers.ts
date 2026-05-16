@@ -58,3 +58,19 @@ export function calcLevel(xp: number): { level: number; currentXP: number } {
     currentXP: xp % 100,
   };
 }
+
+// Returns true when the user had an active streak but missed yesterday
+export function isStreakBroken(habits: Habit[]): boolean {
+  if (habits.length === 0) return false;
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yStr = getDateStr(yesterday);
+  const twoDaysAgo = new Date();
+  twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+  const tStr = getDateStr(twoDaysAgo);
+
+  // At least one habit was done 2 days ago (was active) but none done yesterday
+  const wasActive = habits.some(h => isHabitDoneOnDate(h, tStr));
+  const missedYesterday = !habits.some(h => isHabitDoneOnDate(h, yStr));
+  return wasActive && missedYesterday;
+}
