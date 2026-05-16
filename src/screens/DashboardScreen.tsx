@@ -22,6 +22,7 @@ import HabitCard from '../components/HabitCard';
 import AddHabitModal from '../components/AddHabitModal';
 import DetailModal from '../components/DetailModal';
 import ReportModal from '../components/ReportModal';
+import MascotCard from '../components/MascotCard';
 
 const { width } = Dimensions.get('window');
 
@@ -129,6 +130,16 @@ export default function DashboardScreen() {
           <StatPill icon="🔥" label="Seri" value={`${streak} gün`} colors={colors} accent={colors.danger} />
           <StatPill icon="✅" label="Tamamlanan" value={`${completed}/${total}`} colors={colors} accent={colors.success} />
           <StatPill icon="⚡" label="XP" value={`${ctx.userXP}`} colors={colors} accent={colors.accent} />
+        </View>
+
+        {/* ── Mascot ── */}
+        <View style={{ paddingHorizontal: 20 }}>
+          <MascotCard
+            percentage={percentage}
+            streak={streak}
+            level={level}
+            colors={colors}
+          />
         </View>
 
         {/* ── Habit Groups ── */}
