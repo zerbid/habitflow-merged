@@ -45,6 +45,9 @@ export interface CloudData {
   notificationsEnabled: boolean;
   notificationTime: string;
   lastNotificationDate: string;
+  mascotType: string;
+  freezeTokens: number;
+  lastFreezeUsedDate: string;
 }
 
 export function onUserStateChanged(callback: (user: User | null) => void): () => void {

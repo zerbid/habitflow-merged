@@ -43,6 +43,8 @@ export default function DashboardScreen() {
   const today = getTodayStr();
   const streak = calcGlobalMaxStreak(ctx.habits);
   const streakBroke = isStreakBroken(ctx.habits);
+  const yesterday = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
+  const shieldActive = streakBroke && ctx.lastFreezeUsedDate === yesterday;
   const completed = calcCompletedToday(ctx.habits, today);
   const total = ctx.habits.length;
   const percentage = total === 0 ? 0 : Math.round((completed / total) * 100);
@@ -140,8 +142,12 @@ export default function DashboardScreen() {
             percentage={percentage}
             streak={streak}
             streakBroken={streakBroke}
+            shieldActive={shieldActive}
+            freezeTokens={ctx.freezeTokens}
+            mascotType={ctx.mascotType}
             level={level}
             colors={colors}
+            onUseFreeze={ctx.useStreakFreeze}
           />
         </View>
 

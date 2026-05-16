@@ -34,6 +34,8 @@ export interface PendingReport {
   periodPrefix: string;
 }
 
+export type MascotType = 'plant' | 'campfire';
+
 interface AppContextType {
   habits: Habit[];
   userXP: number;
@@ -41,6 +43,9 @@ interface AppContextType {
   notificationsEnabled: boolean;
   notificationTime: string;
   lastNotificationDate: string;
+  mascotType: MascotType;
+  freezeTokens: number;
+  lastFreezeUsedDate: string;
   user: User | null;
   isLoading: boolean;
   pendingReport: PendingReport | null;
@@ -57,6 +62,8 @@ interface AppContextType {
   setTheme: (theme: 'dark' | 'light') => void;
   setNotifications: (enabled: boolean) => void;
   setNotificationTime: (time: string) => void;
+  setMascotType: (type: MascotType) => void;
+  useStreakFreeze: () => void;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
   exportData: () => CloudData;
@@ -82,6 +89,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [lastNotificationDate, setLastNotificationDate] = useState('');
   const [lastOpenedMonth, setLastOpenedMonth] = useState('');
   const [lastOpenedYear, setLastOpenedYear] = useState('');
+  const [mascotType, setMascotTypeState] = useState<MascotType>('plant');
+  const [freezeTokens, setFreezeTokens] = useState(2);
+  const [lastFreezeUsedDate, setLastFreezeUsedDate] = useState('');
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [pendingReport, setPendingReport] = useState<PendingReport | null>(null);
@@ -115,6 +125,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const [
         habitsStr, xpStr, themeStr, notifEnabled,
         notifTime, notifDate, openedMonth, openedYear,
+        mascotStr, freezeStr, freezeDateStr,
       ] = await Promise.all([
         Storage.get('habits'),
         Storage.get('userXP'),
@@ -124,6 +135,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         Storage.get('lastNotificationDate'),
         Storage.get('lastOpenedMonth'),
         Storage.get('lastOpenedYear'),
+        Storage.get('mascotType'),
+        Storage.get('freezeTokens'),
+        Storage.get('lastFreezeUsedDate'),
       ]);
 
       if (habitsStr) setHabits(JSON.parse(habitsStr));
@@ -132,6 +146,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setNotificationsEnabled(notifEnabled === 'true');
       if (notifTime) setNotificationTimeState(notifTime);
       if (notifDate) setLastNotificationDate(notifDate);
+      if (mascotStr) setMascotTypeState(mascotStr as MascotType);
+      if (freezeStr) setFreezeTokens(parseInt(freezeStr));
+      if (freezeDateStr) setLastFreezeUsedDate(freezeDateStr);
 
       const now = new Date();
       const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -172,6 +189,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setLastOpenedYear(data.lastOpenedYear);
       await Storage.set('lastOpenedYear', data.lastOpenedYear);
     }
+    if (data.mascotType) {
+      setMascotTypeState(data.mascotType as MascotType);
+      await Storage.set('mascotType', data.mascotType);
+    }
+    if (data.freezeTokens !== undefined) {
+      setFreezeTokens(data.freezeTokens);
+      await Storage.set('freezeTokens', String(data.freezeTokens));
+    }
+    if (data.lastFreezeUsedDate) {
+      setLastFreezeUsedDate(data.lastFreezeUsedDate);
+      await Storage.set('lastFreezeUsedDate', data.lastFreezeUsedDate);
+    }
   }
 
   function buildCloudPayload(overrides: Partial<CloudData> = {}): CloudData {
@@ -184,6 +213,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       notificationsEnabled,
       notificationTime,
       lastNotificationDate,
+      mascotType,
+      freezeTokens,
+      lastFreezeUsedDate,
       ...overrides,
     };
   }
@@ -276,6 +308,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (user) flushToCloud(user.uid, { notificationTime: time });
   }
 
+  function setMascotType(type: MascotType) {
+    setMascotTypeState(type);
+    Storage.set('mascotType', type).catch(console.error);
+    if (user) flushToCloud(user.uid, { mascotType: type });
+  }
+
+  function useStreakFreeze() {
+    if (freezeTokens <= 0) return;
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+    const next = freezeTokens - 1;
+    setFreezeTokens(next);
+    setLastFreezeUsedDate(yStr);
+    Storage.set('freezeTokens', String(next)).catch(console.error);
+    Storage.set('lastFreezeUsedDate', yStr).catch(console.error);
+    if (user) flushToCloud(user.uid, { freezeTokens: next, lastFreezeUsedDate: yStr });
+  }
+
   async function signIn() {
     await signInWithGoogle();
   }
@@ -309,6 +360,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setLastNotificationDate('');
     setLastOpenedMonth('');
     setLastOpenedYear('');
+    setMascotTypeState('plant');
+    setFreezeTokens(2);
+    setLastFreezeUsedDate('');
     if (user) await deleteCloudData(user.uid);
   }
 
@@ -347,6 +401,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         notificationsEnabled,
         notificationTime,
         lastNotificationDate,
+        mascotType,
+        freezeTokens,
+        lastFreezeUsedDate,
         user,
         isLoading,
         pendingReport,
@@ -357,6 +414,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setTheme,
         setNotifications,
         setNotificationTime,
+        setMascotType,
+        useStreakFreeze,
         signIn,
         signOut,
         exportData,
