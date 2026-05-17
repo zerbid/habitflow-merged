@@ -1,133 +1,322 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated } from 'react-native';
-import Svg, { Ellipse, Rect, Circle, Path } from 'react-native-svg';
-import { MascotStage } from '../../utils/helpers';
+// src/components/mascots/Campfire.tsx
+// Habit-companion mascot. 6 stages (-1 embers through 4 bonfire).
+// Renders with react-native-svg + Animated (no Lottie required).
+//
+// Install once:
+//   npx expo install react-native-svg
+//
+// Usage:
+//   <Campfire stage={3} size={120} animate />
 
-interface Props {
-  stage: MascotStage;
+import React, { useEffect, useRef } from 'react';
+import { Animated, Easing } from 'react-native';
+import Svg, {
+  Circle, Ellipse, Rect, G, Path,
+} from 'react-native-svg';
+
+const AnimatedG    = Animated.createAnimatedComponent(G);
+const AnimatedView = Animated.View;
+
+export interface CampfireProps {
+  /** -1 embers · 0 cold · 1 small · 2 medium · 3 large · 4 bonfire */
+  stage: -1 | 0 | 1 | 2 | 3 | 4;
+  /** width in px — height renders at size * 1.2 */
   size?: number;
   animate?: boolean;
 }
 
-const VW = 100;
-const VH = 120;
+const C = {
+  // logs
+  logActive:  '#5d3a1a',
+  logActiveL: '#6d4c2a',
+  logEmber:   '#3e1f00',
+  logEmberL:  '#4a2800',
 
-// Teardrop flame: base at (cx, cy), rising to (cx, cy-h), half-width w
-function flame(cx: number, cy: number, w: number, h: number, color: string, opacity = 1) {
-  const d = `M ${cx},${cy} Q ${cx + w * 0.8},${cy - h * 0.35} ${cx},${cy - h} Q ${cx - w * 0.8},${cy - h * 0.35} ${cx},${cy} Z`;
-  return <Path key={`${cx}-${cy}-${h}`} d={d} fill={color} opacity={opacity} />;
+  // ash
+  ash1: '#78909c',
+  ash2: '#b0bec5',
+
+  // embers
+  emberDot:    '#e84000',
+  emberDark:   '#cc3300',
+  emberBright: '#ffd700',
+
+  // flames
+  flameOut:  '#ff6b35',
+  flameMid:  '#ff8c42',
+  flameInD:  '#ff4500',
+  flameIn:   '#ffd93d',
+  flameTip:  '#ffee00',
+
+  // glow / sparks
+  glow:   '#ff6b35',
+  spark1: '#ffd93d',
+  spark2: '#ff8c42',
+  spark3: '#ffee00',
+  spark4: '#ffa726',
+
+  // face
+  eye:   '#2a2520',
+  cheek: '#ffb3a0',
+};
+
+// Teardrop flame path — pointed top, rounded bottom.
+function flame(cx: number, baseY: number, w: number, h: number): string {
+  const top = baseY - h;
+  return (
+    `M ${cx} ${baseY}` +
+    ` C ${cx - w} ${baseY} ${cx - w * 0.85} ${baseY - h * 0.45} ${cx - w * 0.4} ${baseY - h * 0.78}` +
+    ` Q ${cx - w * 0.1} ${top + h * 0.08} ${cx} ${top}` +
+    ` Q ${cx + w * 0.1} ${top + h * 0.08} ${cx + w * 0.4} ${baseY - h * 0.78}` +
+    ` C ${cx + w * 0.85} ${baseY - h * 0.45} ${cx + w} ${baseY} ${cx} ${baseY}` +
+    ` Z`
+  );
 }
 
-export default function Campfire({ stage, size = 80, animate = true }: Props) {
-  const flickerAnim = useRef(new Animated.Value(1)).current;
+export default function Campfire({ stage, size = 120, animate = true }: CampfireProps) {
+  const flick = useRef(new Animated.Value(0)).current;
+  const glow  = useRef(new Animated.Value(0)).current;
+  const shake = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (!animate || stage <= 0) return;
-    const loop = Animated.loop(
+    if (!animate) return;
+    if (stage === -1) {
       Animated.sequence([
-        Animated.timing(flickerAnim, { toValue: 0.65, duration: 380, useNativeDriver: true }),
-        Animated.timing(flickerAnim, { toValue: 1.0,  duration: 280, useNativeDriver: true }),
-        Animated.timing(flickerAnim, { toValue: 0.8,  duration: 230, useNativeDriver: true }),
-        Animated.timing(flickerAnim, { toValue: 1.0,  duration: 380, useNativeDriver: true }),
+        Animated.timing(shake, { toValue: 1,  duration: 80, useNativeDriver: true }),
+        Animated.timing(shake, { toValue: -1, duration: 80, useNativeDriver: true }),
+        Animated.timing(shake, { toValue: 1,  duration: 80, useNativeDriver: true }),
+        Animated.timing(shake, { toValue: -1, duration: 80, useNativeDriver: true }),
+        Animated.timing(shake, { toValue: 0,  duration: 80, useNativeDriver: true }),
+      ]).start();
+      return;
+    }
+    if (stage <= 0) return; // no fire to animate
+
+    const flicker = Animated.loop(
+      Animated.sequence([
+        Animated.timing(flick, { toValue: 0.65, duration: 200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(flick, { toValue: 1,    duration: 200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(flick, { toValue: 0.85, duration: 200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(flick, { toValue: 1,    duration: 200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
       ]),
     );
-    loop.start();
-    return () => loop.stop();
-  }, [animate, stage]);
+    const glowing = Animated.loop(
+      Animated.sequence([
+        Animated.timing(glow, { toValue: 1, duration: 1000, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(glow, { toValue: 0, duration: 1000, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      ]),
+    );
+    flicker.start();
+    glowing.start();
+    return () => { flicker.stop(); glowing.stop(); };
+  }, [animate, flick, glow, shake, stage]);
 
-  const h = size * (VH / VW);
+  const translateX = shake.interpolate({ inputRange: [-1, 1], outputRange: [-3, 3] });
+
+  // glow opacity range scales with stage
+  const glowMax = stage === 4 ? 0.55 : stage === 3 ? 0.45 : 0.35;
+  const glowOpacity = glow.interpolate({ inputRange: [0, 1], outputRange: [glowMax - 0.2, glowMax] });
 
   return (
-    <Animated.View style={{ width: size, height: h, opacity: animate && stage > 0 ? flickerAnim : 1 }}>
-      <Svg width={size} height={h} viewBox={`0 0 ${VW} ${VH}`}>
+    <Animated.View style={{ width: size, height: size * 1.2, transform: [{ translateX }] }}>
+      {/* Glow halo — sits behind the SVG, opacity loops independently */}
+      {stage >= 2 && (
+        <AnimatedView
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            left:   size * 0.18,
+            top:    size * (95 / 120) - size * 0.18,
+            width:  size * 0.64,
+            height: size * 0.36,
+            borderRadius: size * 0.32,
+            backgroundColor: C.glow,
+            opacity: glowOpacity,
+          }}
+        />
+      )}
 
-        {stage === -1 && (
-          /* Embers — dark logs, glowing dots, no flame */
+      <Svg width={size} height={size * 1.2} viewBox="0 0 100 120">
+        {/* ground shadow */}
+        <Ellipse cx={50} cy={113} rx={36} ry={3.5} fill="#2a2520" opacity={0.18} />
+
+        {stage === -1 && <Embers />}
+        {stage === 0  && <Cold />}
+        {stage >= 1   && (
           <>
-            <Rect x={32} y={97} width={38} height={10} rx={5} fill="#3e1f00" transform="rotate(18, 51, 102)" />
-            <Rect x={30} y={97} width={38} height={10} rx={5} fill="#4a2800" transform="rotate(-18, 49, 102)" />
-            <Ellipse cx={50} cy={101} rx={18} ry={6} fill="#cc3300" opacity={0.3} />
-            <Circle cx={42} cy={98} r={4}   fill="#e84000" />
-            <Circle cx={52} cy={97} r={4.5} fill="#cc3300" />
-            <Circle cx={60} cy={99} r={3.5} fill="#e84000" />
-            <Circle cx={42} cy={98} r={1.8} fill="#ffd700" />
-            <Circle cx={52} cy={97} r={2.2} fill="#ffd700" />
-            <Circle cx={60} cy={99} r={1.5} fill="#ffb300" />
+            <Logs active />
+            <AnimatedG style={{ opacity: stage >= 1 ? flick : 1 } as any}>
+              {stage === 1 && <FireSmall />}
+              {stage === 2 && <FireMedium />}
+              {stage === 3 && <FireLarge />}
+              {stage === 4 && <FireBonfire />}
+            </AnimatedG>
+            {stage === 4 && <Sparks />}
           </>
         )}
-
-        {stage >= 0 && (
-          /* Logs shared by stages 0-4 */
-          <>
-            <Rect x={32} y={97} width={38} height={10} rx={5} fill="#5d3a1a" transform="rotate(18, 51, 102)" />
-            <Rect x={30} y={97} width={38} height={10} rx={5} fill="#6d4c2a" transform="rotate(-18, 49, 102)" />
-          </>
-        )}
-
-        {stage === 0 && (
-          /* Cold — ash pile only */
-          <>
-            <Ellipse cx={50} cy={101} rx={22} ry={7}  fill="#78909c" opacity={0.4} />
-            <Ellipse cx={50} cy={101} rx={12} ry={4}  fill="#b0bec5" opacity={0.35} />
-          </>
-        )}
-
-        {stage === 1 && (
-          /* Small flame */
-          <>
-            <Ellipse cx={50} cy={100} rx={14} ry={5}  fill="#ff6b35" opacity={0.35} />
-            {flame(50, 98, 8, 24, '#ff6b35')}
-            {flame(50, 98, 6, 18, '#ffd93d')}
-          </>
-        )}
-
-        {stage === 2 && (
-          /* Medium fire */
-          <>
-            <Ellipse cx={50} cy={100} rx={20} ry={6}  fill="#ff6b35" opacity={0.45} />
-            {flame(42, 98, 7, 26, '#ff8c42', 0.9)}
-            {flame(58, 98, 7, 26, '#ff8c42', 0.9)}
-            {flame(50, 98, 10, 36, '#ff6b35')}
-            {flame(50, 98, 7,  26, '#ffd93d')}
-          </>
-        )}
-
-        {stage === 3 && (
-          /* Large fire */
-          <>
-            <Ellipse cx={50} cy={100} rx={27} ry={8}  fill="#ff4500" opacity={0.5} />
-            {flame(38, 98, 8, 30, '#ff8c42', 0.8)}
-            {flame(62, 98, 8, 30, '#ff8c42', 0.8)}
-            {flame(44, 98, 9, 38, '#ff6b35', 0.95)}
-            {flame(56, 98, 9, 38, '#ff6b35', 0.95)}
-            {flame(50, 98, 12, 52, '#ff4500')}
-            {flame(50, 98, 8,  40, '#ffd93d')}
-          </>
-        )}
-
-        {stage === 4 && (
-          /* Bonfire — max intensity with sparks */
-          <>
-            <Ellipse cx={50} cy={101} rx={34} ry={9}  fill="#ff4500" opacity={0.55} />
-            {flame(35, 98, 9,  38, '#cc2200', 0.85)}
-            {flame(65, 98, 9,  38, '#cc2200', 0.85)}
-            {flame(42, 98, 10, 50, '#ff4500', 0.9)}
-            {flame(58, 98, 10, 50, '#ff4500', 0.9)}
-            {flame(47, 98, 11, 62, '#ff6b35')}
-            {flame(53, 98, 11, 62, '#ff6b35')}
-            {flame(50, 98, 14, 72, '#ff4500')}
-            {flame(50, 98, 9,  58, '#ffd93d')}
-            {flame(50, 98, 5,  44, '#ffee00')}
-            {/* Sparks */}
-            <Circle cx={36} cy={42} r={2.5} fill="#ffd93d" opacity={0.9} />
-            <Circle cx={63} cy={32} r={2}   fill="#ff8c42" opacity={0.8} />
-            <Circle cx={50} cy={25} r={3}   fill="#ffee00" opacity={0.85} />
-            <Circle cx={42} cy={36} r={1.8} fill="#ffa726" opacity={0.7} />
-            <Circle cx={60} cy={48} r={2.2} fill="#ff6b35" opacity={0.75} />
-          </>
-        )}
-
       </Svg>
     </Animated.View>
+  );
+}
+
+// ─── primitives ────────────────────────────────────────────
+function Logs({ active = true }: { active?: boolean }) {
+  const log  = active ? C.logActive  : C.logEmber;
+  const logL = active ? C.logActiveL : C.logEmberL;
+  return (
+    <G>
+      {/* back log */}
+      <G transform="translate(50 107) rotate(-12)">
+        <Rect x={-26} y={-3} width={52} height={6} rx={3} fill={log} />
+        <Ellipse cx={-24} cy={0} rx={1.5} ry={2} fill={logL} />
+        <Ellipse cx={ 24} cy={0} rx={1.5} ry={2} fill={logL} />
+      </G>
+      {/* front log */}
+      <G transform="translate(50 102) rotate(12)">
+        <Rect x={-26} y={-3} width={52} height={6} rx={3} fill={log} />
+        <Ellipse cx={-24} cy={0} rx={1.5} ry={2} fill={logL} />
+        <Ellipse cx={ 24} cy={0} rx={1.5} ry={2} fill={logL} />
+      </G>
+    </G>
+  );
+}
+
+function Eye({ cx, cy, r = 1.5 }: { cx: number; cy: number; r?: number }) {
+  return <Circle cx={cx} cy={cy} r={r} fill={C.eye} />;
+}
+function Cheek({ cx, cy, r = 1.3 }: { cx: number; cy: number; r?: number }) {
+  return <Circle cx={cx} cy={cy} r={r} fill={C.cheek} opacity={0.7} />;
+}
+
+// ─── stages ────────────────────────────────────────────────
+function Embers() {
+  return (
+    <G>
+      <Logs active={false} />
+      {/* glowing ember dots between logs */}
+      <Circle cx={42} cy={103} r={2.2} fill={C.emberDot} />
+      <Circle cx={42} cy={103} r={1}   fill={C.emberBright} />
+      <Circle cx={52} cy={100} r={2.4} fill={C.emberDot} />
+      <Circle cx={52} cy={100} r={1.2} fill={C.emberBright} />
+      <Circle cx={59} cy={104} r={2}   fill={C.emberDark} />
+      <Circle cx={59} cy={104} r={0.9} fill={C.emberBright} />
+    </G>
+  );
+}
+
+function Cold() {
+  return (
+    <G>
+      <Logs active={true} />
+      {/* ash mound */}
+      <Ellipse cx={50} cy={98}  rx={16} ry={4}   fill={C.ash1} />
+      <Ellipse cx={50} cy={95}  rx={11} ry={2.8} fill={C.ash2} />
+      <Ellipse cx={46} cy={94}  rx={3}  ry={1.2} fill={C.ash2} opacity={0.7} />
+      <Ellipse cx={54} cy={94}  rx={3}  ry={1.2} fill={C.ash2} opacity={0.7} />
+    </G>
+  );
+}
+
+function FireSmall() {
+  return (
+    <G>
+      <Path d={flame(50, 96, 6,   22)} fill={C.flameOut} />
+      <Path d={flame(50, 96, 3.2, 14)} fill={C.flameIn} />
+    </G>
+  );
+}
+
+function FireMedium() {
+  return (
+    <G>
+      {/* left + right small */}
+      <Path d={flame(42, 96, 5, 20)} fill={C.flameOut} />
+      <Path d={flame(42, 96, 2.5, 12)} fill={C.flameIn} />
+      <Path d={flame(58, 96, 5, 24)} fill={C.flameOut} />
+      <Path d={flame(58, 96, 2.5, 15)} fill={C.flameIn} />
+      {/* center tall */}
+      <Path d={flame(50, 96, 8,   38)} fill={C.flameOut} />
+      <Path d={flame(50, 96, 5,   28)} fill={C.flameMid} />
+      <Path d={flame(50, 96, 2.7, 20)} fill={C.flameIn} />
+      {/* face on center flame */}
+      <Eye cx={47} cy={78} />
+      <Eye cx={53} cy={78} />
+      <Cheek cx={45} cy={81} />
+      <Cheek cx={55} cy={81} />
+      <Ellipse cx={50} cy={83} rx={2} ry={0.8} fill={C.eye} />
+    </G>
+  );
+}
+
+function FireLarge() {
+  return (
+    <G>
+      {/* outer pair short */}
+      <Path d={flame(36, 96, 4, 16)} fill={C.flameInD} />
+      <Path d={flame(36, 96, 2, 11)} fill={C.flameIn} />
+      <Path d={flame(64, 96, 4, 18)} fill={C.flameInD} />
+      <Path d={flame(64, 96, 2, 12)} fill={C.flameIn} />
+      {/* inner pair medium */}
+      <Path d={flame(44, 96, 5,   32)} fill={C.flameOut} />
+      <Path d={flame(44, 96, 3,   23)} fill={C.flameIn} />
+      <Path d={flame(56, 96, 5,   34)} fill={C.flameOut} />
+      <Path d={flame(56, 96, 3,   25)} fill={C.flameIn} />
+      {/* center tallest */}
+      <Path d={flame(50, 96, 9,   54)} fill={C.flameInD} />
+      <Path d={flame(50, 96, 6.2, 42)} fill={C.flameOut} />
+      <Path d={flame(50, 96, 4,   32)} fill={C.flameMid} />
+      <Path d={flame(50, 96, 2.2, 22)} fill={C.flameTip} />
+      {/* face */}
+      <Eye cx={47} cy={70} r={1.7} />
+      <Eye cx={53} cy={70} r={1.7} />
+      <Cheek cx={44} cy={74} r={1.6} />
+      <Cheek cx={56} cy={74} r={1.6} />
+      <Ellipse cx={50} cy={76} rx={2.5} ry={1} fill={C.eye} />
+    </G>
+  );
+}
+
+function FireBonfire() {
+  return (
+    <G>
+      <Path d={flame(32, 96, 4, 20)} fill={C.flameInD} />
+      <Path d={flame(32, 96, 2, 13)} fill={C.flameIn} />
+      <Path d={flame(68, 96, 4, 22)} fill={C.flameInD} />
+      <Path d={flame(68, 96, 2, 14)} fill={C.flameIn} />
+      <Path d={flame(40, 96, 5,   36)} fill={C.flameInD} />
+      <Path d={flame(40, 96, 3,   27)} fill={C.flameIn} />
+      <Path d={flame(60, 96, 5,   40)} fill={C.flameInD} />
+      <Path d={flame(60, 96, 3,   31)} fill={C.flameIn} />
+      <Path d={flame(46, 96, 6,   52)} fill={C.flameOut} />
+      <Path d={flame(46, 96, 4,   40)} fill={C.flameMid} />
+      <Path d={flame(54, 96, 6,   56)} fill={C.flameOut} />
+      <Path d={flame(54, 96, 4,   44)} fill={C.flameMid} />
+      <Path d={flame(50, 96, 10,  72)} fill={C.flameInD} />
+      <Path d={flame(50, 96, 7,   60)} fill={C.flameOut} />
+      <Path d={flame(50, 96, 4.5, 46)} fill={C.flameIn} />
+      <Path d={flame(50, 96, 2.5, 32)} fill={C.flameTip} />
+      {/* big face */}
+      <Eye cx={47} cy={62} r={1.9} />
+      <Eye cx={53} cy={62} r={1.9} />
+      <Cheek cx={43} cy={67} r={1.8} />
+      <Cheek cx={57} cy={67} r={1.8} />
+      <Ellipse cx={50} cy={70} rx={3} ry={1.2} fill={C.eye} />
+    </G>
+  );
+}
+
+function Sparks() {
+  return (
+    <G>
+      <Circle cx={30} cy={22} r={1}   fill={C.spark1} />
+      <Circle cx={42} cy={14} r={0.8} fill={C.spark3} />
+      <Circle cx={58} cy={18} r={1}   fill={C.spark2} />
+      <Circle cx={68} cy={26} r={0.8} fill={C.spark4} />
+      <Circle cx={50} cy={10} r={1.2} fill={C.spark3} />
+      <Circle cx={36} cy={32} r={0.7} fill={C.spark2} />
+      <Circle cx={64} cy={36} r={0.8} fill={C.spark1} />
+      <Circle cx={26} cy={38} r={0.6} fill={C.spark4} />
+      <Circle cx={74} cy={42} r={0.7} fill={C.spark1} />
+    </G>
   );
 }
