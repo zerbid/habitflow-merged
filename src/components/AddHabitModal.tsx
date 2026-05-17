@@ -13,6 +13,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Habit } from '../context/AppContext';
 import { Colors, HABIT_COLORS } from '../theme/colors';
+import Plant from './mascots/Plant';
+import Campfire from './mascots/Campfire';
 
 interface Props {
   visible: boolean;
@@ -24,22 +26,24 @@ interface Props {
     timeOfDay: Habit['timeOfDay'],
     type: Habit['type'],
     target: number,
+    mascot: 'plant' | 'fire',
   ) => void;
 }
 
 const TIME_OPTIONS: { value: Habit['timeOfDay']; label: string; icon: string }[] = [
-  { value: 'morning', label: 'Sabah', icon: '☀️' },
-  { value: 'afternoon', label: 'Öğle', icon: '🌤' },
-  { value: 'evening', label: 'Akşam', icon: '🌙' },
-  { value: 'anytime', label: 'Esnek', icon: '🔄' },
+  { value: 'morning',   label: 'Sabah',  icon: '☀️' },
+  { value: 'afternoon', label: 'Öğle',   icon: '🌤' },
+  { value: 'evening',   label: 'Akşam',  icon: '🌙' },
+  { value: 'anytime',   label: 'Esnek',  icon: '🔄' },
 ];
 
 export default function AddHabitModal({ visible, colors, onClose, onAdd }: Props) {
-  const [name, setName] = useState('');
+  const [name, setName]                 = useState('');
   const [selectedColor, setSelectedColor] = useState(HABIT_COLORS[0]);
-  const [timeOfDay, setTimeOfDay] = useState<Habit['timeOfDay']>('anytime');
-  const [type, setType] = useState<Habit['type']>('boolean');
-  const [target, setTarget] = useState('1');
+  const [timeOfDay, setTimeOfDay]       = useState<Habit['timeOfDay']>('anytime');
+  const [type, setType]                 = useState<Habit['type']>('boolean');
+  const [target, setTarget]             = useState('1');
+  const [mascot, setMascot]             = useState<'plant' | 'fire'>('plant');
 
   function reset() {
     setName('');
@@ -47,11 +51,12 @@ export default function AddHabitModal({ visible, colors, onClose, onAdd }: Props
     setTimeOfDay('anytime');
     setType('boolean');
     setTarget('1');
+    setMascot('plant');
   }
 
   function handleAdd() {
     if (!name.trim()) return;
-    onAdd(name.trim(), selectedColor, timeOfDay, type, parseInt(target) || 1);
+    onAdd(name.trim(), selectedColor, timeOfDay, type, parseInt(target) || 1, mascot);
     reset();
   }
 
@@ -67,10 +72,8 @@ export default function AddHabitModal({ visible, colors, onClose, onAdd }: Props
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <TouchableOpacity style={s.overlay} activeOpacity={1} onPress={handleClose} />
         <View style={[s.sheet, { backgroundColor: colors.bgContent }]}>
-          {/* Handle */}
           <View style={[s.handle, { backgroundColor: colors.border }]} />
 
-          {/* Title row */}
           <View style={s.titleRow}>
             <Text style={[s.title, { color: colors.textMain }]}>Yeni Alışkanlık</Text>
             <TouchableOpacity onPress={handleClose} style={[s.closeBtn, { backgroundColor: colors.bgPanel }]}>
@@ -79,7 +82,7 @@ export default function AddHabitModal({ visible, colors, onClose, onAdd }: Props
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false}>
-            {/* Name input */}
+            {/* Name */}
             <Text style={[s.label, { color: colors.textMuted }]}>Alışkanlık Adı</Text>
             <TextInput
               style={[s.input, {
@@ -95,7 +98,7 @@ export default function AddHabitModal({ visible, colors, onClose, onAdd }: Props
               autoFocus
             />
 
-            {/* Color picker */}
+            {/* Color */}
             <Text style={[s.label, { color: colors.textMuted }]}>Renk</Text>
             <View style={s.colorRow}>
               {HABIT_COLORS.map(c => (
@@ -108,9 +111,7 @@ export default function AddHabitModal({ visible, colors, onClose, onAdd }: Props
                     selectedColor === c && s.colorDotActive,
                   ]}
                 >
-                  {selectedColor === c && (
-                    <Text style={styles.colorCheck}>✓</Text>
-                  )}
+                  {selectedColor === c && <Text style={sStatic.colorCheck}>✓</Text>}
                 </TouchableOpacity>
               ))}
             </View>
@@ -186,6 +187,23 @@ export default function AddHabitModal({ visible, colors, onClose, onAdd }: Props
               </>
             )}
 
+            {/* ── Mascot picker ── */}
+            <Text style={[s.label, { color: colors.textMuted }]}>Yeni Alışkanlık · Son Adım · Bir Dost Seç</Text>
+            <View style={s.mascotRow}>
+              <MascotChoice
+                type="plant"
+                selected={mascot === 'plant'}
+                colors={colors}
+                onPress={() => setMascot('plant')}
+              />
+              <MascotChoice
+                type="fire"
+                selected={mascot === 'fire'}
+                colors={colors}
+                onPress={() => setMascot('fire')}
+              />
+            </View>
+
             {/* Add button */}
             <LinearGradient
               colors={[colors.gradientA, colors.gradientB]}
@@ -206,8 +224,64 @@ export default function AddHabitModal({ visible, colors, onClose, onAdd }: Props
   );
 }
 
-const styles = StyleSheet.create({
+// ── Mascot choice card ────────────────────────────────────────────────────────
+
+function MascotChoice({
+  type, selected, colors, onPress,
+}: { type: 'plant' | 'fire'; selected: boolean; colors: Colors; onPress: () => void }) {
+  const isPlant = type === 'plant';
+  const accent  = isPlant ? '#4caf50' : '#ff6b35';
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.8}
+      style={[
+        sStatic.mascotCard,
+        {
+          backgroundColor: selected ? `${accent}15` : colors.bgPanel,
+          borderColor: selected ? accent : colors.border,
+        },
+      ]}
+    >
+      {isPlant
+        ? <Plant    stage={2} size={64} animate={false} />
+        : <Campfire stage={2} size={64} animate={false} />
+      }
+      <Text style={[sStatic.mascotName, { color: selected ? accent : colors.textMain }]}>
+        {isPlant ? 'Bitki' : 'Ateş'}
+      </Text>
+      <Text style={[sStatic.mascotDesc, { color: colors.textMuted }]}>
+        {isPlant
+          ? 'Sessiz. Sabit hızda.\nDüşmeyi affeder.'
+          : 'Canlı. Hareketli.\nKöz bırakır, asla sönmez.'}
+      </Text>
+      {selected && (
+        <View style={[sStatic.check, { backgroundColor: accent }]}>
+          <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800' }}>✓</Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+}
+
+// ── Styles ────────────────────────────────────────────────────────────────────
+
+const sStatic = StyleSheet.create({
   colorCheck: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  mascotCard: {
+    flex: 1, alignItems: 'center',
+    paddingVertical: 16, paddingHorizontal: 10,
+    borderRadius: 20, borderWidth: 1.5,
+    gap: 6,
+  },
+  mascotName: { fontSize: 15, fontWeight: '700' },
+  mascotDesc: { fontSize: 11, textAlign: 'center', lineHeight: 16 },
+  check: {
+    position: 'absolute', top: 10, right: 10,
+    width: 20, height: 20, borderRadius: 10,
+    justifyContent: 'center', alignItems: 'center',
+  },
 });
 
 function makeStyles(colors: Colors) {
@@ -216,7 +290,7 @@ function makeStyles(colors: Colors) {
     sheet: {
       borderTopLeftRadius: 32, borderTopRightRadius: 32,
       paddingHorizontal: 24, paddingBottom: 0,
-      maxHeight: '90%',
+      maxHeight: '92%',
     },
     handle: {
       width: 36, height: 4, borderRadius: 2,
@@ -266,6 +340,7 @@ function makeStyles(colors: Colors) {
     },
     typeBtnTitle: { fontSize: 14, fontWeight: '700' },
     typeBtnSub: { fontSize: 11, textAlign: 'center' },
+    mascotRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
     addGradient: { borderRadius: 16, marginTop: 8 },
     addBtn: { paddingVertical: 16, alignItems: 'center' },
     addBtnText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.2 },

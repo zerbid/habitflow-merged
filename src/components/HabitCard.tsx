@@ -2,7 +2,9 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Habit } from '../context/AppContext';
 import { Colors } from '../theme/colors';
-import { isHabitDoneOnDate, getCurrentVal } from '../utils/helpers';
+import { isHabitDoneOnDate, getCurrentVal, calcMascotStage } from '../utils/helpers';
+import Plant from './mascots/Plant';
+import Campfire from './mascots/Campfire';
 
 interface Props {
   habit: Habit;
@@ -23,6 +25,9 @@ export default function HabitCard({
     ? Math.min(currentVal / habit.target, 1)
     : done ? 1 : 0;
 
+  const stage = calcMascotStage(habit);
+  const isFire = (habit.mascot ?? 'plant') === 'fire';
+
   return (
     <TouchableOpacity
       activeOpacity={0.75}
@@ -36,13 +41,17 @@ export default function HabitCard({
         done && { backgroundColor: `${habit.color}12` },
       ]}
     >
-      {/* Left color accent bar */}
-      <View style={[styles.accentBar, { backgroundColor: habit.color }]} />
+      {/* Left mascot */}
+      <View style={styles.mascotWrap}>
+        {isFire
+          ? <Campfire stage={stage} size={52} animate={false} />
+          : <Plant    stage={stage} size={52} animate={false} />
+        }
+      </View>
 
       {/* Content */}
       <View style={styles.body}>
         <View style={styles.topRow}>
-          {/* Name */}
           <Text
             style={[
               styles.name,
@@ -54,7 +63,6 @@ export default function HabitCard({
             {habit.name}
           </Text>
 
-          {/* Control */}
           {habit.type === 'boolean' ? (
             <TouchableOpacity
               onPress={onToggle}
@@ -89,20 +97,15 @@ export default function HabitCard({
           )}
         </View>
 
-        {/* Progress bar for numeric, or subtle bar for boolean */}
         <View style={[styles.progressBg, { backgroundColor: colors.border }]}>
           <View
             style={[
               styles.progressFill,
-              {
-                width: `${progress * 100}%` as any,
-                backgroundColor: habit.color,
-              },
+              { width: `${progress * 100}%` as any, backgroundColor: habit.color },
             ]}
           />
         </View>
 
-        {/* Footer */}
         <View style={styles.footer}>
           <View style={[styles.tag, { backgroundColor: colors.bgPanel }]}>
             <Text style={[styles.tagText, { color: colors.textMuted }]}>
@@ -128,13 +131,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 10,
     overflow: 'hidden',
+    alignItems: 'center',
   },
-  accentBar: {
-    width: 4,
+  mascotWrap: {
+    width: 64,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+    paddingLeft: 4,
   },
   body: {
     flex: 1,
     padding: 14,
+    paddingLeft: 8,
     gap: 10,
   },
   topRow: {
@@ -161,26 +170,18 @@ const styles = StyleSheet.create({
   numBtn: {
     width: 30, height: 30, borderRadius: 9,
     justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'transparent',
+    borderWidth: 1, borderColor: 'transparent',
   },
   numBtnText: { fontSize: 18, fontWeight: '600', lineHeight: 22 },
   numValue: { fontSize: 13, fontWeight: '700', minWidth: 48, textAlign: 'center' },
-  progressBg: {
-    height: 3, borderRadius: 2, overflow: 'hidden',
-  },
-  progressFill: {
-    height: 3, borderRadius: 2,
-  },
+  progressBg: { height: 3, borderRadius: 2, overflow: 'hidden' },
+  progressFill: { height: 3, borderRadius: 2 },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  tag: {
-    paddingHorizontal: 8, paddingVertical: 3,
-    borderRadius: 8,
-  },
+  tag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
   tagText: { fontSize: 11, fontWeight: '500' },
   deleteIcon: { fontSize: 22, fontWeight: '300', lineHeight: 24 },
 });

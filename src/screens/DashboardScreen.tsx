@@ -210,8 +210,8 @@ export default function DashboardScreen() {
         visible={showAddModal}
         colors={colors}
         onClose={() => setShowAddModal(false)}
-        onAdd={(name, color, timeOfDay, type, target) => {
-          ctx.addHabit(name, color, timeOfDay, type, target);
+        onAdd={(name, color, timeOfDay, type, target, mascot) => {
+          ctx.addHabit(name, color, timeOfDay, type, target, mascot);
           setShowAddModal(false);
         }}
       />

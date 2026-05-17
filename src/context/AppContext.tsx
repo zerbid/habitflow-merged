@@ -27,6 +27,7 @@ export interface Habit {
   target: number;
   createdAt: string;
   history: Record<string, boolean | number>;
+  mascot?: 'plant' | 'fire';
 }
 
 export interface PendingReport {
@@ -55,6 +56,7 @@ interface AppContextType {
     timeOfDay: Habit['timeOfDay'],
     type: Habit['type'],
     target: number,
+    mascot?: 'plant' | 'fire',
   ) => void;
   deleteHabit: (id: string) => void;
   toggleHabit: (id: string) => void;
@@ -239,6 +241,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     timeOfDay: Habit['timeOfDay'],
     type: Habit['type'],
     target: number,
+    mascot: 'plant' | 'fire' = 'plant',
   ) {
     const newHabit: Habit = {
       id: Date.now().toString(),
@@ -247,6 +250,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       timeOfDay,
       type,
       target,
+      mascot,
       createdAt: new Date().toISOString(),
       history: {},
     };

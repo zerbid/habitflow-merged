@@ -2,7 +2,9 @@ import React from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Habit } from '../context/AppContext';
 import { Colors } from '../theme/colors';
-import { getDateStr, isHabitDoneOnDate } from '../utils/helpers';
+import { getDateStr, isHabitDoneOnDate, calcMascotStage } from '../utils/helpers';
+import Plant from './mascots/Plant';
+import Campfire from './mascots/Campfire';
 
 interface Props {
   visible: boolean;
@@ -24,11 +26,22 @@ export default function DetailModal({ visible, habit, colors, onClose }: Props) 
   });
 
   const doneCount = days.filter(d => d.done).length;
+  const stage = calcMascotStage(habit);
+  const isFire = (habit.mascot ?? 'plant') === 'fire';
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={[styles.card, { backgroundColor: colors.bgContent }]}>
+
+          {/* Mascot hero */}
+          <View style={styles.mascotHero}>
+            {isFire
+              ? <Campfire stage={stage} size={140} animate />
+              : <Plant    stage={stage} size={140} animate />
+            }
+          </View>
+
           <Text style={[styles.title, { color: colors.textMain }]}>{habit.name}</Text>
           <Text style={[styles.subtitle, { color: colors.textMuted }]}>
             Son 30 günde {doneCount} kez tamamlandı
@@ -73,12 +86,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center', padding: 24,
   },
   card: { borderRadius: 24, padding: 24 },
+  mascotHero: { alignItems: 'center', marginBottom: 8 },
   title: { fontSize: 20, fontWeight: '700', marginBottom: 4 },
   subtitle: { fontSize: 13, marginBottom: 20 },
-  heatmap: {
-    flexDirection: 'row', flexWrap: 'wrap',
-    gap: 5, marginBottom: 14,
-  },
+  heatmap: { flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginBottom: 14 },
   cell: { width: 24, height: 24, borderRadius: 5 },
   legend: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 20 },
   legendDot: { width: 14, height: 14, borderRadius: 4 },

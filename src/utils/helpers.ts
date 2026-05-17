@@ -59,6 +59,32 @@ export function calcLevel(xp: number): { level: number; currentXP: number } {
   };
 }
 
+export type MascotStage = -1 | 0 | 1 | 2 | 3 | 4;
+
+// Maps a habit's streak + recent-miss history to a visual mascot stage
+export function calcMascotStage(habit: Habit): MascotStage {
+  // Check 3 consecutive misses → wilted/embers (-1), but only if habit is old enough
+  const now = new Date();
+  let consecutiveMisses = 0;
+  for (let i = 1; i <= 3; i++) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    if (!isHabitDoneOnDate(habit, getDateStr(d))) {
+      consecutiveMisses++;
+    } else {
+      break;
+    }
+  }
+  if (consecutiveMisses >= 3) return -1;
+
+  const streak = calcHabitStreak(habit);
+  if (streak === 0)   return 0;
+  if (streak <= 3)    return 1;
+  if (streak <= 10)   return 2;
+  if (streak <= 25)   return 3;
+  return 4;
+}
+
 // Returns true when the user had an active streak but missed yesterday
 export function isStreakBroken(habits: Habit[]): boolean {
   if (habits.length === 0) return false;
