@@ -1,13 +1,16 @@
-import { initializeApp, getApps } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import {
   initializeAuth,
-  inMemoryPersistence,
+  getAuth,
+  getReactNativePersistence,
   signInWithPopup,
   GoogleAuthProvider,
   onAuthStateChanged,
   signOut,
   User,
+  Auth,
 } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 import { Habit } from '../context/AppContext';
 
@@ -21,15 +24,19 @@ const firebaseConfig = {
   measurementId: 'G-S4670MCZ6R',
 };
 
-const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// initializeAuth with explicit persistence avoids the
-// "Component auth has not been registered yet" crash on React Native / Hermes.
-// inMemoryPersistence keeps auth alive for the app session; habit data
-// (habits, XP, theme) is independently persisted in AsyncStorage.
-const auth = initializeAuth(firebaseApp, {
-  persistence: inMemoryPersistence,
-});
+// getReactNativePersistence is the officially supported persistence for
+// React Native / Expo Go. Falls back to getAuth() if initializeAuth was
+// already called (e.g. during Fast Refresh hot-reload).
+let auth: Auth;
+try {
+  auth = initializeAuth(firebaseApp, {
+    persistence: getReactNativePersistence(AsyncStorage),
+  });
+} catch {
+  auth = getAuth(firebaseApp);
+}
 
 const db = getFirestore(firebaseApp);
 
