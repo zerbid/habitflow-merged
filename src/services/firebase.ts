@@ -2,6 +2,7 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import {
   initializeAuth,
   getAuth,
+  inMemoryPersistence,
   signInWithPopup,
   GoogleAuthProvider,
   onAuthStateChanged,
@@ -9,11 +10,6 @@ import {
   User,
   Auth,
 } from 'firebase/auth';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-// getReactNativePersistence is present in the RN bundle but absent from TS types in this version
-const { getReactNativePersistence } = require('firebase/auth') as {
-  getReactNativePersistence: (storage: typeof AsyncStorage) => any;
-};
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 import { Habit } from '../context/AppContext';
 
@@ -28,23 +24,24 @@ const firebaseConfig = {
 };
 
 const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-
-// getReactNativePersistence is the officially supported persistence for
-// React Native / Expo Go. Falls back to getAuth() if initializeAuth was
-// already called (e.g. during Fast Refresh hot-reload).
-let auth: Auth;
-try {
-  auth = initializeAuth(firebaseApp, {
-    persistence: getReactNativePersistence(AsyncStorage),
-  });
-} catch {
-  auth = getAuth(firebaseApp);
-}
-
 const db = getFirestore(firebaseApp);
 
+// Auth is initialized lazily on first use so that a registration failure
+// never crashes the app at startup. All habit data lives in AsyncStorage and
+// the app runs fully offline; auth is only needed for optional cloud sync.
+let _auth: Auth | null = null;
+
+function getFirebaseAuth(): Auth | null {
+  if (_auth) return _auth;
+  try {
+    _auth = initializeAuth(firebaseApp, { persistence: inMemoryPersistence });
+  } catch {
+    try { _auth = getAuth(firebaseApp); } catch { _auth = null; }
+  }
+  return _auth;
+}
+
 export type { User };
-export { auth };
 
 export interface CloudData {
   habits: Habit[];
@@ -61,13 +58,16 @@ export interface CloudData {
 }
 
 export function onUserStateChanged(callback: (user: User | null) => void): () => void {
+  const auth = getFirebaseAuth();
+  if (!auth) { callback(null); return () => {}; }
   return onAuthStateChanged(auth, callback);
 }
 
 export async function signInWithGoogle(): Promise<User | null> {
+  const auth = getFirebaseAuth();
+  if (!auth) return null;
   try {
-    const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
+    const result = await signInWithPopup(auth, new GoogleAuthProvider());
     return result.user;
   } catch (e) {
     console.error('Sign in error:', e);
@@ -76,13 +76,14 @@ export async function signInWithGoogle(): Promise<User | null> {
 }
 
 export async function signOutUser(): Promise<void> {
+  const auth = getFirebaseAuth();
+  if (!auth) return;
   return signOut(auth);
 }
 
 export async function syncToCloud(uid: string, data: CloudData): Promise<void> {
   try {
-    const userRef = doc(db, 'users', uid);
-    await setDoc(userRef, data, { merge: true });
+    await setDoc(doc(db, 'users', uid), data, { merge: true });
   } catch (e) {
     console.error('Cloud sync error:', e);
   }
@@ -90,11 +91,9 @@ export async function syncToCloud(uid: string, data: CloudData): Promise<void> {
 
 export async function downloadFromCloud(uid: string): Promise<CloudData | null> {
   try {
-    const userRef = doc(db, 'users', uid);
-    const snap = await getDoc(userRef);
+    const snap = await getDoc(doc(db, 'users', uid));
     if (!snap.exists()) return null;
     const raw = snap.data();
-    // Validate minimum shape before trusting the cast
     if (!raw || typeof raw !== 'object' || !Array.isArray(raw['habits'])) return null;
     return raw as CloudData;
   } catch (e) {
@@ -105,8 +104,7 @@ export async function downloadFromCloud(uid: string): Promise<CloudData | null> 
 
 export async function deleteCloudData(uid: string): Promise<void> {
   try {
-    const userRef = doc(db, 'users', uid);
-    await setDoc(userRef, { habits: [], userXP: 0, theme: 'dark' });
+    await setDoc(doc(db, 'users', uid), { habits: [], userXP: 0, theme: 'dark' });
   } catch (e) {
     console.error('Cloud delete error:', e);
   }
