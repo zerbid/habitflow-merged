@@ -4,6 +4,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { Habit } from '../context/AppContext';
 import { Colors } from '../theme/colors';
 import { isHabitDoneOnDate, getCurrentVal } from '../utils/helpers';
+import { predictToday, RiskLevel } from '../utils/predictions';
 
 interface Props {
   habit: Habit;
@@ -53,6 +54,7 @@ export default function HabitCard({
   const progress   = habit.type === 'numeric' && habit.target > 0
     ? Math.min(currentVal / habit.target, 1)
     : done ? 1 : 0;
+  const pred = done ? null : predictToday(habit);
 
   return (
     <TouchableOpacity
@@ -137,6 +139,15 @@ export default function HabitCard({
             ]}
           />
         </View>
+
+        {pred && pred.risk !== 'unknown' && pred.risk !== 'low' && (
+          <View style={[s.riskBadge, { backgroundColor: RISK_BG[pred.risk] }]}>
+            <View style={[s.riskDot, { backgroundColor: RISK_COLOR[pred.risk] }]} />
+            <Text style={[s.riskText, { color: RISK_COLOR[pred.risk] }]}>
+              {pred.pctLabel} · {pred.riskLabel}
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* Delete */}
@@ -150,6 +161,15 @@ export default function HabitCard({
     </TouchableOpacity>
   );
 }
+
+const RISK_COLOR: Record<Exclude<RiskLevel, 'unknown' | 'low'>, string> = {
+  high:   '#C97064',
+  medium: '#C9A961',
+};
+const RISK_BG: Record<Exclude<RiskLevel, 'unknown' | 'low'>, string> = {
+  high:   '#C9706418',
+  medium: '#C9A96118',
+};
 
 const s = StyleSheet.create({
   card: {
@@ -177,6 +197,14 @@ const s = StyleSheet.create({
   numValue: { fontSize: 12, minWidth: 46, textAlign: 'center', fontVariant: ['tabular-nums'] },
   progressBg: { height: 3, borderRadius: 99, overflow: 'hidden' },
   progressFill: { height: 3, borderRadius: 99 },
+  riskBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8, paddingVertical: 3,
+    borderRadius: 99,
+  },
+  riskDot: { width: 5, height: 5, borderRadius: 99 },
+  riskText: { fontSize: 10, fontWeight: '600' },
   deleteBtn: { flexShrink: 0, paddingLeft: 4 },
   deleteIcon: { fontSize: 22, fontWeight: '300', lineHeight: 24 },
 });

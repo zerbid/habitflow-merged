@@ -5,6 +5,7 @@ import {
 import { Habit } from '../context/AppContext';
 import { Colors } from '../theme/colors';
 import { getDateStr, isHabitDoneOnDate, calcMascotStage, calcHabitStreak } from '../utils/helpers';
+import { predictToday } from '../utils/predictions';
 import Plant from './mascots/Plant';
 import Campfire from './mascots/Campfire';
 
@@ -33,6 +34,7 @@ export default function DetailModal({ visible, habit, colors, onClose }: Props) 
   const streak  = calcHabitStreak(habit);
   const stage   = calcMascotStage(habit);
   const isFire  = (habit.mascot ?? 'plant') === 'fire';
+  const pred    = predictToday(habit);
 
   const totalDone = Object.values(habit.history).filter(v =>
     v === true || (typeof v === 'number' && v > 0)
@@ -90,6 +92,38 @@ export default function DetailModal({ visible, habit, colors, onClose }: Props) 
                 </View>
               ))}
             </View>
+
+            {/* Prediction card */}
+            {pred.risk !== 'unknown' && (
+              <View style={[
+                d.predCard,
+                { backgroundColor: PRED_BG[pred.risk], borderColor: PRED_BORDER[pred.risk] },
+              ]}>
+                <View style={d.predTop}>
+                  <View style={[d.predDot, { backgroundColor: PRED_COLOR[pred.risk] }]} />
+                  <Text style={[d.predTitle, { color: PRED_COLOR[pred.risk] }]}>
+                    Bugün tamamlama ihtimali
+                  </Text>
+                  <Text style={[d.predPct, { color: PRED_COLOR[pred.risk], fontFamily: 'Georgia' }]}>
+                    {pred.pctLabel}
+                  </Text>
+                </View>
+                <Text style={[d.predSub, { color: colors.textSub }]}>{pred.riskLabel}</Text>
+                {/* Mini probability bar */}
+                <View style={[d.predBarBg, { backgroundColor: colors.bgPanel }]}>
+                  <View style={[
+                    d.predBarFill,
+                    {
+                      width: `${Math.round(pred.probability * 100)}%` as any,
+                      backgroundColor: PRED_COLOR[pred.risk],
+                    },
+                  ]} />
+                </View>
+                <Text style={[d.predNote, { color: colors.textMuted }]}>
+                  Modeli: geçmiş tamamlanma oranı + gün etkisi
+                </Text>
+              </View>
+            )}
 
             {/* 5-week heatmap */}
             <View style={[s.heatmapCard, { backgroundColor: colors.bgMain, borderColor: colors.hairline }]}>
@@ -153,6 +187,39 @@ export default function DetailModal({ visible, habit, colors, onClose }: Props) 
     </Modal>
   );
 }
+
+import { RiskLevel } from '../utils/predictions';
+
+const PRED_COLOR: Record<Exclude<RiskLevel, 'unknown'>, string> = {
+  high:   '#C97064',
+  medium: '#C9A961',
+  low:    '#7A9B6A',
+};
+const PRED_BG: Record<Exclude<RiskLevel, 'unknown'>, string> = {
+  high:   '#C9706410',
+  medium: '#C9A96110',
+  low:    '#7A9B6A10',
+};
+const PRED_BORDER: Record<Exclude<RiskLevel, 'unknown'>, string> = {
+  high:   '#C9706430',
+  medium: '#C9A96130',
+  low:    '#7A9B6A30',
+};
+
+const d = StyleSheet.create({
+  predCard: {
+    borderRadius: 20, borderWidth: 1,
+    padding: 16, marginBottom: 14, gap: 6,
+  },
+  predTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  predDot: { width: 7, height: 7, borderRadius: 99 },
+  predTitle: { flex: 1, fontSize: 12, fontWeight: '600', letterSpacing: 0.1 },
+  predPct: { fontSize: 22, lineHeight: 26 },
+  predSub: { fontSize: 13 },
+  predBarBg: { height: 4, borderRadius: 99, overflow: 'hidden' },
+  predBarFill: { height: 4, borderRadius: 99 },
+  predNote: { fontSize: 10 },
+});
 
 const s = StyleSheet.create({
   overlay: {
