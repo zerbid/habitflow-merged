@@ -1,20 +1,13 @@
 import React, { useState } from 'react';
 import {
-  Modal,
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
+  Modal, View, Text, TextInput, TouchableOpacity,
+  StyleSheet, KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Habit } from '../context/AppContext';
 import { Colors, HABIT_COLORS } from '../theme/colors';
 import Plant from './mascots/Plant';
 import Campfire from './mascots/Campfire';
+import Svg, { Path } from 'react-native-svg';
 
 interface Props {
   visible: boolean;
@@ -30,28 +23,25 @@ interface Props {
   ) => void;
 }
 
-const TIME_OPTIONS: { value: Habit['timeOfDay']; label: string; icon: string }[] = [
-  { value: 'morning',   label: 'Sabah',  icon: '☀️' },
-  { value: 'afternoon', label: 'Öğle',   icon: '🌤' },
-  { value: 'evening',   label: 'Akşam',  icon: '🌙' },
-  { value: 'anytime',   label: 'Esnek',  icon: '🔄' },
+const TIME_OPTIONS: { value: Habit['timeOfDay']; label: string }[] = [
+  { value: 'morning',   label: 'Sabah' },
+  { value: 'afternoon', label: 'Öğle'  },
+  { value: 'evening',   label: 'Akşam' },
+  { value: 'anytime',   label: 'Esnek' },
 ];
 
 export default function AddHabitModal({ visible, colors, onClose, onAdd }: Props) {
-  const [name, setName]                 = useState('');
+  const [name, setName]                   = useState('');
   const [selectedColor, setSelectedColor] = useState(HABIT_COLORS[0]);
-  const [timeOfDay, setTimeOfDay]       = useState<Habit['timeOfDay']>('anytime');
-  const [type, setType]                 = useState<Habit['type']>('boolean');
-  const [target, setTarget]             = useState('1');
-  const [mascot, setMascot]             = useState<'plant' | 'fire'>('plant');
+  const [timeOfDay, setTimeOfDay]         = useState<Habit['timeOfDay']>('anytime');
+  const [type, setType]                   = useState<Habit['type']>('boolean');
+  const [target, setTarget]               = useState('1');
+  const [mascot, setMascot]               = useState<'plant' | 'fire'>('plant');
 
   function reset() {
-    setName('');
-    setSelectedColor(HABIT_COLORS[0]);
-    setTimeOfDay('anytime');
-    setType('boolean');
-    setTarget('1');
-    setMascot('plant');
+    setName(''); setSelectedColor(HABIT_COLORS[0]);
+    setTimeOfDay('anytime'); setType('boolean');
+    setTarget('1'); setMascot('plant');
   }
 
   function handleAdd() {
@@ -60,37 +50,43 @@ export default function AddHabitModal({ visible, colors, onClose, onAdd }: Props
     reset();
   }
 
-  function handleClose() {
-    reset();
-    onClose();
-  }
-
-  const s = makeStyles(colors);
+  function handleClose() { reset(); onClose(); }
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <TouchableOpacity style={s.overlay} activeOpacity={1} onPress={handleClose} />
+
         <View style={[s.sheet, { backgroundColor: colors.bgContent }]}>
+          {/* Handle */}
           <View style={[s.handle, { backgroundColor: colors.border }]} />
 
-          <View style={s.titleRow}>
-            <Text style={[s.title, { color: colors.textMain }]}>Yeni Alışkanlık</Text>
-            <TouchableOpacity onPress={handleClose} style={[s.closeBtn, { backgroundColor: colors.bgPanel }]}>
-              <Text style={[s.closeBtnText, { color: colors.textMuted }]}>✕</Text>
+          {/* Header */}
+          <View style={s.header}>
+            <View>
+              <Text style={[s.headerSup, { color: colors.textMuted }]}>Yeni</Text>
+              <Text style={[s.headerTitle, { color: colors.textMain, fontFamily: 'Georgia' }]}>
+                Bir alışkanlık daha
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={handleClose}
+              style={[s.closeBtn, { backgroundColor: colors.bgPanel }]}
+            >
+              <Text style={[s.closeBtnText, { color: colors.textSub }]}>✕</Text>
             </TouchableOpacity>
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false}>
             {/* Name */}
-            <Text style={[s.label, { color: colors.textMuted }]}>Alışkanlık Adı</Text>
+            <Text style={[s.label, { color: colors.textMuted }]}>Ne yapmak istiyorsun?</Text>
             <TextInput
               style={[s.input, {
-                backgroundColor: colors.bgPanel,
+                backgroundColor: colors.bgMain,
                 color: colors.textMain,
-                borderColor: colors.border,
+                borderColor: colors.hairline,
               }]}
-              placeholder="Örn: 30 dk okuma..."
+              placeholder="10 dakika dışarıda yürümek…"
               placeholderTextColor={colors.textMuted}
               value={name}
               onChangeText={setName}
@@ -106,18 +102,26 @@ export default function AddHabitModal({ visible, colors, onClose, onAdd }: Props
                   key={c}
                   onPress={() => setSelectedColor(c)}
                   style={[
-                    s.colorDot,
+                    s.colorSwatch,
                     { backgroundColor: c },
-                    selectedColor === c && s.colorDotActive,
+                    selectedColor === c && { transform: [{ scale: 1.12 }] },
                   ]}
                 >
-                  {selectedColor === c && <Text style={sStatic.colorCheck}>✓</Text>}
+                  {selectedColor === c && (
+                    <Svg width={13} height={13} viewBox="0 0 13 13">
+                      <Path
+                        d="M2.5 6.5L5.5 9.5L10.5 3.5"
+                        stroke="#FBF7EF" strokeWidth={2}
+                        strokeLinecap="round" strokeLinejoin="round"
+                      />
+                    </Svg>
+                  )}
                 </TouchableOpacity>
               ))}
             </View>
 
             {/* Time of day */}
-            <Text style={[s.label, { color: colors.textMuted }]}>Ne Zaman?</Text>
+            <Text style={[s.label, { color: colors.textMuted }]}>Ne zaman?</Text>
             <View style={s.segmentRow}>
               {TIME_OPTIONS.map(opt => {
                 const active = timeOfDay === opt.value;
@@ -127,12 +131,13 @@ export default function AddHabitModal({ visible, colors, onClose, onAdd }: Props
                     onPress={() => setTimeOfDay(opt.value)}
                     style={[
                       s.segment,
-                      { borderColor: colors.border, backgroundColor: colors.bgPanel },
-                      active && { backgroundColor: colors.accent, borderColor: colors.accent },
+                      {
+                        backgroundColor: active ? colors.textMain : colors.bgMain,
+                        borderColor: active ? colors.textMain : colors.hairline,
+                      },
                     ]}
                   >
-                    <Text style={{ fontSize: 14 }}>{opt.icon}</Text>
-                    <Text style={[s.segmentText, { color: active ? '#fff' : colors.textMuted }]}>
+                    <Text style={[s.segmentText, { color: active ? colors.bgMain : colors.textSub }]}>
                       {opt.label}
                     </Text>
                   </TouchableOpacity>
@@ -141,41 +146,55 @@ export default function AddHabitModal({ visible, colors, onClose, onAdd }: Props
             </View>
 
             {/* Type */}
-            <Text style={[s.label, { color: colors.textMuted }]}>Tür</Text>
+            <Text style={[s.label, { color: colors.textMuted }]}>Nasıl ölçeceksin?</Text>
             <View style={s.typeRow}>
-              {(['boolean', 'numeric'] as Habit['type'][]).map(t => {
-                const active = type === t;
-                return (
-                  <TouchableOpacity
-                    key={t}
-                    onPress={() => setType(t)}
-                    style={[
-                      s.typeBtn,
-                      { backgroundColor: colors.bgPanel, borderColor: colors.border },
-                      active && { backgroundColor: `${colors.accent}22`, borderColor: colors.accent },
-                    ]}
-                  >
-                    <Text style={{ fontSize: 20 }}>{t === 'boolean' ? '✅' : '🔢'}</Text>
-                    <Text style={[s.typeBtnTitle, { color: active ? colors.accent : colors.textMain }]}>
-                      {t === 'boolean' ? 'Evet/Hayır' : 'Sayısal'}
-                    </Text>
-                    <Text style={[s.typeBtnSub, { color: colors.textMuted }]}>
-                      {t === 'boolean' ? 'Yaptım / yapmadım' : 'Belirli bir hedef'}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+              <TouchableOpacity
+                onPress={() => setType('boolean')}
+                style={[
+                  s.typeCard,
+                  {
+                    backgroundColor: colors.bgMain,
+                    borderColor: type === 'boolean' ? colors.primary : colors.hairline,
+                    borderWidth: type === 'boolean' ? 1.5 : 1,
+                  },
+                ]}
+              >
+                <Text style={[s.typeCardTitle, { color: colors.textMain, fontFamily: 'Georgia' }]}>
+                  Yaptım
+                </Text>
+                <Text style={[s.typeCardSub, { color: colors.textMuted }]}>
+                  Tek bir kutucuk. Bugün yaptın mı?
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setType('numeric')}
+                style={[
+                  s.typeCard,
+                  {
+                    backgroundColor: colors.bgMain,
+                    borderColor: type === 'numeric' ? colors.primary : colors.hairline,
+                    borderWidth: type === 'numeric' ? 1.5 : 1,
+                  },
+                ]}
+              >
+                <Text style={[s.typeCardTitle, { color: colors.textMain, fontFamily: 'Georgia' }]}>
+                  Sayarak
+                </Text>
+                <Text style={[s.typeCardSub, { color: colors.textMuted }]}>
+                  Bir hedef belirle. Adım, sayfa, dakika…
+                </Text>
+              </TouchableOpacity>
             </View>
 
             {/* Target (numeric only) */}
             {type === 'numeric' && (
               <>
-                <Text style={[s.label, { color: colors.textMuted }]}>Günlük Hedef</Text>
+                <Text style={[s.label, { color: colors.textMuted }]}>Günlük hedef</Text>
                 <TextInput
                   style={[s.input, {
-                    backgroundColor: colors.bgPanel,
+                    backgroundColor: colors.bgMain,
                     color: colors.textMain,
-                    borderColor: colors.border,
+                    borderColor: colors.hairline,
                   }]}
                   keyboardType="numeric"
                   value={target}
@@ -187,36 +206,40 @@ export default function AddHabitModal({ visible, colors, onClose, onAdd }: Props
               </>
             )}
 
-            {/* ── Mascot picker ── */}
-            <Text style={[s.label, { color: colors.textMuted }]}>Yeni Alışkanlık · Son Adım · Bir Dost Seç</Text>
+            {/* Mascot picker */}
+            <Text style={[s.label, { color: colors.textMuted }]}>Bir dost seç</Text>
             <View style={s.mascotRow}>
               <MascotChoice
-                type="plant"
-                selected={mascot === 'plant'}
-                colors={colors}
+                type="plant" selected={mascot === 'plant'} colors={colors}
                 onPress={() => setMascot('plant')}
               />
               <MascotChoice
-                type="fire"
-                selected={mascot === 'fire'}
-                colors={colors}
+                type="fire" selected={mascot === 'fire'} colors={colors}
                 onPress={() => setMascot('fire')}
               />
             </View>
 
-            {/* Add button */}
-            <LinearGradient
-              colors={[colors.gradientA, colors.gradientB]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={s.addGradient}
-            >
-              <TouchableOpacity style={s.addBtn} onPress={handleAdd} disabled={!name.trim()}>
-                <Text style={s.addBtnText}>Alışkanlık Ekle</Text>
-              </TouchableOpacity>
-            </LinearGradient>
+            {/* Hint */}
+            <View style={[s.hint, { backgroundColor: colors.primarySoft }]}>
+              <Text style={[s.hintText, { color: colors.primary }]}>
+                <Text style={{ fontFamily: 'Georgia', fontSize: 15 }}>Bir öneri — </Text>
+                küçük başla. Beş dakikalık bir adım, bir saatten daha sürdürülebilirdir.
+              </Text>
+            </View>
 
-            <View style={{ height: 16 }} />
+            {/* Add button */}
+            <TouchableOpacity
+              onPress={handleAdd}
+              disabled={!name.trim()}
+              style={[
+                s.addBtn,
+                { backgroundColor: colors.textMain, opacity: name.trim() ? 1 : 0.4 },
+              ]}
+            >
+              <Text style={[s.addBtnText, { color: colors.bgMain }]}>Listeme ekle</Text>
+            </TouchableOpacity>
+
+            <View style={{ height: 24 }} />
           </ScrollView>
         </View>
       </KeyboardAvoidingView>
@@ -226,123 +249,137 @@ export default function AddHabitModal({ visible, colors, onClose, onAdd }: Props
 
 // ── Mascot choice card ────────────────────────────────────────────────────────
 
+const FIRE_BG     = '#251D17';
+const FIRE_BORDER = '#3A2F25';
+const FIRE_TEXT   = '#FBF7EF';
+const FIRE_MUTED  = '#D6CFC0';
+
 function MascotChoice({
   type, selected, colors, onPress,
 }: { type: 'plant' | 'fire'; selected: boolean; colors: Colors; onPress: () => void }) {
   const isPlant = type === 'plant';
-  const accent  = isPlant ? '#4caf50' : '#ff6b35';
+
+  const cardBg     = isPlant
+    ? (selected ? colors.bgContent : colors.bgMain)
+    : (selected ? FIRE_BG : '#1A1410');
+  const cardBorder = isPlant
+    ? (selected ? colors.primary : colors.hairline)
+    : (selected ? '#E08456' : FIRE_BORDER);
+  const nameTxt = isPlant
+    ? colors.textMain
+    : FIRE_TEXT;
+  const subTxt  = isPlant ? colors.textMuted : FIRE_MUTED;
 
   return (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.8}
       style={[
-        sStatic.mascotCard,
+        ms.card,
         {
-          backgroundColor: selected ? `${accent}15` : colors.bgPanel,
-          borderColor: selected ? accent : colors.border,
+          backgroundColor: cardBg,
+          borderColor: cardBorder,
+          borderWidth: selected ? 2 : 1,
         },
       ]}
     >
       {isPlant
-        ? <Plant    stage={2} size={64} animate={false} />
-        : <Campfire stage={2} size={64} animate={false} />
+        ? <Plant    stage={3} size={80} animate={false} />
+        : <Campfire stage={3} size={80} animate={false} />
       }
-      <Text style={[sStatic.mascotName, { color: selected ? accent : colors.textMain }]}>
+      <Text style={[ms.name, { color: nameTxt, fontFamily: 'Georgia' }]}>
         {isPlant ? 'Bitki' : 'Ateş'}
       </Text>
-      <Text style={[sStatic.mascotDesc, { color: colors.textMuted }]}>
+      <Text style={[ms.desc, { color: subTxt }]}>
         {isPlant
           ? 'Sessiz. Sabit hızda.\nDüşmeyi affeder.'
           : 'Canlı. Hareketli.\nKöz bırakır, asla sönmez.'}
       </Text>
       {selected && (
-        <View style={[sStatic.check, { backgroundColor: accent }]}>
-          <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800' }}>✓</Text>
+        <View style={[ms.check, { backgroundColor: isPlant ? colors.primary : '#E08456' }]}>
+          <Svg width={12} height={12} viewBox="0 0 12 12">
+            <Path d="M2 6l3 3 5-5" stroke="#FBF7EF" strokeWidth={1.8}
+              strokeLinecap="round" strokeLinejoin="round" />
+          </Svg>
         </View>
       )}
     </TouchableOpacity>
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-
-const sStatic = StyleSheet.create({
-  colorCheck: { color: '#fff', fontSize: 14, fontWeight: '800' },
-  mascotCard: {
+const ms = StyleSheet.create({
+  card: {
     flex: 1, alignItems: 'center',
     paddingVertical: 16, paddingHorizontal: 10,
-    borderRadius: 20, borderWidth: 1.5,
-    gap: 6,
+    borderRadius: 26, gap: 6,
   },
-  mascotName: { fontSize: 15, fontWeight: '700' },
-  mascotDesc: { fontSize: 11, textAlign: 'center', lineHeight: 16 },
+  name: { fontSize: 22 },
+  desc: { fontSize: 12, textAlign: 'center', lineHeight: 17 },
   check: {
-    position: 'absolute', top: 10, right: 10,
-    width: 20, height: 20, borderRadius: 10,
+    position: 'absolute', top: 12, right: 12,
+    width: 22, height: 22, borderRadius: 11,
     justifyContent: 'center', alignItems: 'center',
   },
 });
 
-function makeStyles(colors: Colors) {
-  return StyleSheet.create({
-    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' },
-    sheet: {
-      borderTopLeftRadius: 32, borderTopRightRadius: 32,
-      paddingHorizontal: 24, paddingBottom: 0,
-      maxHeight: '92%',
-    },
-    handle: {
-      width: 36, height: 4, borderRadius: 2,
-      alignSelf: 'center', marginTop: 14, marginBottom: 20,
-    },
-    titleRow: {
-      flexDirection: 'row', alignItems: 'center',
-      justifyContent: 'space-between', marginBottom: 24,
-    },
-    title: { fontSize: 22, fontWeight: '800', letterSpacing: -0.3 },
-    closeBtn: {
-      width: 34, height: 34, borderRadius: 17,
-      justifyContent: 'center', alignItems: 'center',
-    },
-    closeBtnText: { fontSize: 14, fontWeight: '700' },
-    label: {
-      fontSize: 12, fontWeight: '700', letterSpacing: 0.8,
-      textTransform: 'uppercase', marginBottom: 10,
-    },
-    input: {
-      borderWidth: 1.5, borderRadius: 14,
-      padding: 14, fontSize: 16, marginBottom: 24,
-      fontWeight: '500',
-    },
-    colorRow: {
-      flexDirection: 'row', gap: 10, marginBottom: 24, flexWrap: 'wrap',
-    },
-    colorDot: {
-      width: 36, height: 36, borderRadius: 12,
-      justifyContent: 'center', alignItems: 'center',
-    },
-    colorDotActive: {
-      transform: [{ scale: 1.15 }],
-      shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.3, shadowRadius: 4, elevation: 4,
-    },
-    segmentRow: { flexDirection: 'row', gap: 8, marginBottom: 24 },
-    segment: {
-      flex: 1, alignItems: 'center', paddingVertical: 10,
-      borderRadius: 14, borderWidth: 1.5, gap: 4,
-    },
-    segmentText: { fontSize: 11, fontWeight: '700' },
-    typeRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
-    typeBtn: {
-      flex: 1, padding: 16, borderRadius: 18,
-      borderWidth: 1.5, alignItems: 'center', gap: 6,
-    },
-    typeBtnTitle: { fontSize: 14, fontWeight: '700' },
-    typeBtnSub: { fontSize: 11, textAlign: 'center' },
-    mascotRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
-    addGradient: { borderRadius: 16, marginTop: 8 },
-    addBtn: { paddingVertical: 16, alignItems: 'center' },
-    addBtnText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.2 },
-  });
-}
+// ── Styles ────────────────────────────────────────────────────────────────────
+
+const s = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)' },
+  sheet: {
+    borderTopLeftRadius: 32, borderTopRightRadius: 32,
+    paddingHorizontal: 22, paddingBottom: 0,
+    maxHeight: '94%',
+  },
+  handle: {
+    width: 40, height: 4, borderRadius: 2,
+    alignSelf: 'center', marginTop: 14, marginBottom: 18,
+  },
+  header: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'flex-start', marginBottom: 22,
+  },
+  headerSup: {
+    fontSize: 11, letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 2,
+  },
+  headerTitle: { fontSize: 28, letterSpacing: -0.5, lineHeight: 32 },
+  closeBtn: {
+    width: 32, height: 32, borderRadius: 16,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  closeBtnText: { fontSize: 14 },
+  label: {
+    fontSize: 11, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8,
+  },
+  input: {
+    borderWidth: 1, borderRadius: 14,
+    padding: 14, fontSize: 16, marginBottom: 22,
+  },
+  colorRow: { flexDirection: 'row', gap: 10, marginBottom: 22, flexWrap: 'wrap' },
+  colorSwatch: {
+    width: 32, height: 32, borderRadius: 11,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  segmentRow: { flexDirection: 'row', gap: 8, marginBottom: 22 },
+  segment: {
+    flex: 1, alignItems: 'center', paddingVertical: 12,
+    borderRadius: 14, borderWidth: 1,
+  },
+  segmentText: { fontSize: 13, fontWeight: '500' },
+  typeRow: { flexDirection: 'row', gap: 10, marginBottom: 22 },
+  typeCard: {
+    flex: 1, padding: 14, borderRadius: 18, gap: 4,
+  },
+  typeCardTitle: { fontSize: 17 },
+  typeCardSub: { fontSize: 12, lineHeight: 17 },
+  mascotRow: { flexDirection: 'row', gap: 14, marginBottom: 14 },
+  hint: {
+    borderRadius: 14, padding: 14, marginBottom: 18,
+  },
+  hintText: { fontSize: 12, lineHeight: 18 },
+  addBtn: {
+    borderRadius: 16, paddingVertical: 15,
+    alignItems: 'center',
+  },
+  addBtnText: { fontSize: 15, fontWeight: '500', letterSpacing: 0.1 },
+});

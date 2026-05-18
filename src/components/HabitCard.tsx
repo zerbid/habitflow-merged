@@ -1,10 +1,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import Svg, { Circle, Path } from 'react-native-svg';
 import { Habit } from '../context/AppContext';
 import { Colors } from '../theme/colors';
-import { isHabitDoneOnDate, getCurrentVal, calcMascotStage } from '../utils/helpers';
-import Plant from './mascots/Plant';
-import Campfire from './mascots/Campfire';
+import { isHabitDoneOnDate, getCurrentVal } from '../utils/helpers';
 
 interface Props {
   habit: Habit;
@@ -16,47 +15,72 @@ interface Props {
   onPress: () => void;
 }
 
+function CompletionRing({ done, progress, color, bg }: {
+  done: boolean; progress: number; color: string; bg: string;
+}) {
+  const r = 12;
+  const c = 2 * Math.PI * r;
+  return (
+    <Svg width={28} height={28}>
+      <Circle cx={14} cy={14} r={r} fill="none" stroke={bg} strokeWidth={2} />
+      <Circle
+        cx={14} cy={14} r={r}
+        fill="none" stroke={color} strokeWidth={2}
+        strokeLinecap="round"
+        strokeDasharray={`${c} ${c}`}
+        strokeDashoffset={c * (1 - progress)}
+        rotation="-90" originX={14} originY={14}
+      />
+      {done && (
+        <>
+          <Circle cx={14} cy={14} r={10} fill={color} />
+          <Path
+            d="M9.5 14l3 3 5-5"
+            stroke="#FBF7EF" strokeWidth={1.8}
+            strokeLinecap="round" strokeLinejoin="round"
+          />
+        </>
+      )}
+    </Svg>
+  );
+}
+
 export default function HabitCard({
   habit, today, colors, onToggle, onUpdate, onDelete, onPress,
 }: Props) {
-  const done = isHabitDoneOnDate(habit, today);
+  const done       = isHabitDoneOnDate(habit, today);
   const currentVal = getCurrentVal(habit, today);
-  const progress = habit.type === 'numeric' && habit.target > 0
+  const progress   = habit.type === 'numeric' && habit.target > 0
     ? Math.min(currentVal / habit.target, 1)
     : done ? 1 : 0;
-
-  const stage = calcMascotStage(habit);
-  const isFire = (habit.mascot ?? 'plant') === 'fire';
 
   return (
     <TouchableOpacity
       activeOpacity={0.75}
       onPress={onPress}
       style={[
-        styles.card,
-        {
-          backgroundColor: colors.bgContent,
-          borderColor: done ? `${habit.color}55` : colors.border,
-        },
-        done && { backgroundColor: `${habit.color}12` },
+        s.card,
+        { backgroundColor: colors.bgContent, borderColor: colors.hairline },
       ]}
     >
-      {/* Left mascot */}
-      <View style={styles.mascotWrap}>
-        {isFire
-          ? <Campfire stage={stage} size={52} animate={false} />
-          : <Plant    stage={stage} size={52} animate={false} />
-        }
+      {/* Completion ring */}
+      <View style={s.ringWrap}>
+        <CompletionRing
+          done={done}
+          progress={progress}
+          color={habit.color}
+          bg={colors.bgPanel}
+        />
       </View>
 
       {/* Content */}
-      <View style={styles.body}>
-        <View style={styles.topRow}>
+      <View style={s.body}>
+        <View style={s.topRow}>
           <Text
             style={[
-              styles.name,
+              s.name,
               { color: done ? colors.textMuted : colors.textMain },
-              done && styles.nameDone,
+              done && s.nameDone,
             ]}
             numberOfLines={1}
           >
@@ -67,121 +91,92 @@ export default function HabitCard({
             <TouchableOpacity
               onPress={onToggle}
               style={[
-                styles.checkbox,
+                s.checkbox,
                 {
                   borderColor: done ? habit.color : colors.border,
                   backgroundColor: done ? habit.color : 'transparent',
                 },
               ]}
             >
-              {done && <Text style={styles.checkmark}>✓</Text>}
+              {done && (
+                <Svg width={13} height={13} viewBox="0 0 13 13">
+                  <Path
+                    d="M2.5 6.5L5.5 9.5L10.5 3.5"
+                    stroke="#FBF7EF" strokeWidth={2}
+                    strokeLinecap="round" strokeLinejoin="round"
+                  />
+                </Svg>
+              )}
             </TouchableOpacity>
           ) : (
-            <View style={styles.numericRow}>
+            <View style={s.numericRow}>
               <TouchableOpacity
                 onPress={() => onUpdate(-1)}
-                style={[styles.numBtn, { borderColor: colors.border, backgroundColor: colors.bgPanel }]}
+                style={[s.numBtn, { backgroundColor: colors.bgPanel }]}
               >
-                <Text style={[styles.numBtnText, { color: colors.textMain }]}>−</Text>
+                <Text style={[s.numBtnText, { color: colors.textMain }]}>−</Text>
               </TouchableOpacity>
-              <Text style={[styles.numValue, { color: colors.textMain }]}>
+              <Text style={[s.numValue, { color: colors.textSub }]}>
                 {currentVal}/{habit.target}
               </Text>
               <TouchableOpacity
                 onPress={() => onUpdate(1)}
-                style={[styles.numBtn, { backgroundColor: habit.color }]}
+                style={[s.numBtn, { backgroundColor: habit.color }]}
               >
-                <Text style={[styles.numBtnText, { color: '#fff' }]}>+</Text>
+                <Text style={[s.numBtnText, { color: '#FBF7EF' }]}>+</Text>
               </TouchableOpacity>
             </View>
           )}
         </View>
 
-        <View style={[styles.progressBg, { backgroundColor: colors.border }]}>
+        <View style={[s.progressBg, { backgroundColor: colors.bgPanel }]}>
           <View
             style={[
-              styles.progressFill,
+              s.progressFill,
               { width: `${progress * 100}%` as any, backgroundColor: habit.color },
             ]}
           />
         </View>
-
-        <View style={styles.footer}>
-          <View style={[styles.tag, { backgroundColor: colors.bgPanel }]}>
-            <Text style={[styles.tagText, { color: colors.textMuted }]}>
-              {habit.type === 'boolean' ? '✓ Günlük' : `🎯 ${habit.target} hedef`}
-            </Text>
-          </View>
-          <TouchableOpacity
-            onPress={onDelete}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Text style={[styles.deleteIcon, { color: colors.textMuted }]}>×</Text>
-          </TouchableOpacity>
-        </View>
       </View>
+
+      {/* Delete */}
+      <TouchableOpacity
+        onPress={onDelete}
+        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        style={s.deleteBtn}
+      >
+        <Text style={[s.deleteIcon, { color: colors.textMuted }]}>×</Text>
+      </TouchableOpacity>
     </TouchableOpacity>
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   card: {
-    flexDirection: 'row',
-    borderRadius: 18,
-    borderWidth: 1,
-    marginBottom: 10,
-    overflow: 'hidden',
-    alignItems: 'center',
+    flexDirection: 'row', alignItems: 'center',
+    borderRadius: 22, borderWidth: 1,
+    padding: 14, gap: 14, marginBottom: 8,
   },
-  mascotWrap: {
-    width: 64,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 4,
-    paddingLeft: 4,
-  },
-  body: {
-    flex: 1,
-    padding: 14,
-    paddingLeft: 8,
-    gap: 10,
-  },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  name: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '600',
-    letterSpacing: -0.1,
-  },
-  nameDone: {
-    textDecorationLine: 'line-through',
-  },
+  ringWrap: { flexShrink: 0 },
+  body: { flex: 1, gap: 8 },
+  topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  name: { flex: 1, fontSize: 15, fontWeight: '500', letterSpacing: -0.1 },
+  nameDone: { textDecorationLine: 'line-through' },
   checkbox: {
-    width: 28, height: 28, borderRadius: 9,
-    borderWidth: 2,
+    width: 28, height: 28, borderRadius: 99,
+    borderWidth: 1.5,
     justifyContent: 'center', alignItems: 'center',
+    flexShrink: 0,
   },
-  checkmark: { color: '#fff', fontSize: 15, fontWeight: '800' },
   numericRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   numBtn: {
-    width: 30, height: 30, borderRadius: 9,
+    width: 30, height: 30, borderRadius: 10,
     justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1, borderColor: 'transparent',
   },
-  numBtnText: { fontSize: 18, fontWeight: '600', lineHeight: 22 },
-  numValue: { fontSize: 13, fontWeight: '700', minWidth: 48, textAlign: 'center' },
-  progressBg: { height: 3, borderRadius: 2, overflow: 'hidden' },
-  progressFill: { height: 3, borderRadius: 2 },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  tag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  tagText: { fontSize: 11, fontWeight: '500' },
+  numBtnText: { fontSize: 18, fontWeight: '500', lineHeight: 22 },
+  numValue: { fontSize: 12, minWidth: 46, textAlign: 'center', fontVariant: ['tabular-nums'] },
+  progressBg: { height: 3, borderRadius: 99, overflow: 'hidden' },
+  progressFill: { height: 3, borderRadius: 99 },
+  deleteBtn: { flexShrink: 0, paddingLeft: 4 },
   deleteIcon: { fontSize: 22, fontWeight: '300', lineHeight: 24 },
 });

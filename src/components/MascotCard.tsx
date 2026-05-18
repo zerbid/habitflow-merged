@@ -22,88 +22,71 @@ type Mood = 'celebrating' | 'excited' | 'happy' | 'neutral' | 'worried' | 'sleep
 
 function globalStage(streak: number, streakBroken: boolean, shieldActive: boolean): MascotStage {
   if (streakBroken && !shieldActive) return -1;
-  if (streak === 0) return 0;
-  if (streak <= 2)  return 1;
-  if (streak <= 6)  return 2;
-  if (streak <= 13) return 3;
+  if (streak === 0)  return 0;
+  if (streak <= 2)   return 1;
+  if (streak <= 6)   return 2;
+  if (streak <= 13)  return 3;
   return 4;
 }
 
-function getStreakBadge(streak: number, streakBroken: boolean, shieldActive: boolean): string | null {
-  if (shieldActive)  return 'Streak koruması aktif!';
-  if (streakBroken)  return 'Seri söndü...';
-  if (streak <= 2)   return null;
-  if (streak <= 6)   return `${streak} günlük seri!`;
-  if (streak <= 13)  return `${streak} günlük seri! 🌟`;
-  return `${streak} günlük EFSANE seri! 👑`;
-}
-
-// ── Mood derivation ───────────────────────────────────────────────────────────
-
-function getMood(percentage: number, streak: number, streakBroken: boolean, shieldActive: boolean): Mood {
-  if (shieldActive)              return 'shielded';
-  if (streakBroken && streak === 0) return 'furious';
-  if (streakBroken)              return 'angry';
-  if (percentage === 100)        return 'celebrating';
-  if (percentage >= 75)          return 'excited';
-  if (percentage >= 50)          return 'happy';
-  if (percentage >= 25)          return 'neutral';
-  if (percentage > 0)            return 'worried';
+function getMood(pct: number, streak: number, broken: boolean, shield: boolean): Mood {
+  if (shield)                    return 'shielded';
+  if (broken && streak === 0)    return 'furious';
+  if (broken)                    return 'angry';
+  if (pct === 100)               return 'celebrating';
+  if (pct >= 75)                 return 'excited';
+  if (pct >= 50)                 return 'happy';
+  if (pct >= 25)                 return 'neutral';
+  if (pct > 0)                   return 'worried';
   return 'sleeping';
 }
 
-// ── Personality messages ──────────────────────────────────────────────────────
-
-const PLANT_MESSAGES: Record<Mood, string> = {
-  shielded:    'Bir gün geçti. Kökler sağlam kalıyor. 🛡️🌿',
-  celebrating: 'Mükemmel. Düzen, zamanla güce dönüşür. 🌳',
-  excited:     'Neredeyse tamamdın. Adım adım, gün gün. 🌿',
-  happy:       'İyi ilerliyorsun. Kökler derinleşiyor. 🌱',
+const PLANT_MSG: Record<Mood, string> = {
+  shielded:    'Bir gün geçti. Kökler sağlam kalıyor.',
+  celebrating: 'Mükemmel. Düzen, zamanla güce dönüşür.',
+  excited:     'Neredeyse tamamdın. Adım adım, gün gün.',
+  happy:       'İyi ilerliyorsun. Kökler derinleşiyor.',
   neutral:     'Başladın. Bu, en önemli adımdı.',
-  worried:     'Yavaş başlamak, başlamamaktan iyidir. 🌱',
+  worried:     'Yavaş başlamak, başlamamaktan iyidir.',
   sleeping:    'Henüz harekete geçmedin. Bugün hâlâ fırsat var.',
-  angry:       'Bir gün kaçtı. Yarın telafi edilmeli. 🌿',
+  angry:       'Bir gün kaçtı. Yarın telafi edilmeli.',
   furious:     'Seri kırıldı. Disiplin, sonuç değil alışkanlıktır.',
 };
 
-const CAMPFIRE_MESSAGES: Record<Mood, string> = {
-  shielded:    'ATEŞ DONDU! Bir günlük hak kullanıldı! 🛡️🔥',
-  celebrating: 'YANIYORUZ! BUGÜN KİMSE DURDURAMAZ! 🔥🔥🔥',
-  excited:     'NEREDEYSE BURDAYIZ! BIRAKMA ŞİMDİ! 🔥',
-  happy:       'Ateş yanıyor! Körüklemeye devam! 🔥',
+const CAMPFIRE_MSG: Record<Mood, string> = {
+  shielded:    'ATEŞ DONDU! Bir günlük hak kullanıldı!',
+  celebrating: 'YANIYORUZ! BUGÜN KİMSE DURDURAMAZ!',
+  excited:     'NEREDEYSE BURDAYIZ! BIRAKMA ŞİMDİ!',
+  happy:       'Ateş yanıyor! Körüklemeye devam!',
   neutral:     'Orta yoldasın. Ateşi söndürme!',
-  worried:     'Bu ateş sönmek üzere! Harekete geç! 😤',
-  sleeping:    'UYKU VAKTİ DEĞİL! ATEŞ SÖNÜYOR! 😤',
-  angry:       'SERİ GİTTİ! KABUL EDİLEMEZ! 💢🔥',
-  furious:     'SAVAŞ BİTMEDİ! ATEŞI TEKRAR YAK! 🤬🔥',
+  worried:     'Bu ateş sönmek üzere! Harekete geç!',
+  sleeping:    'UYKU VAKTİ DEĞİL! ATEŞ SÖNÜYOR!',
+  angry:       'SERİ GİTTİ! KABUL EDİLEMEZ!',
+  furious:     'SAVAŞ BİTMEDİ! ATEŞI TEKRAR YAK!',
 };
 
-// ── Color helpers ─────────────────────────────────────────────────────────────
+const PLANT_LABEL: Record<Mood, string> = {
+  shielded: 'Dost · korunuyor', celebrating: 'Dost · çiçekleniyor',
+  excited: 'Dost · büyüyor', happy: 'Dost · büyüyor',
+  neutral: 'Dost · büyüyor', worried: 'Dost · solmak üzere',
+  sleeping: 'Dost · uyuyor', angry: 'Dost · solgun', furious: 'Dost · solgun',
+};
 
-function getMoodColor(mood: Mood, colors: Colors): string {
-  switch (mood) {
-    case 'shielded':    return '#3b82f6';
-    case 'furious':     return '#ef4444';
-    case 'angry':       return '#f97316';
-    case 'sleeping':    return colors.textMuted;
-    case 'worried':     return '#f59e0b';
-    case 'neutral':     return colors.textMuted;
-    case 'happy':       return colors.accent;
-    case 'excited':     return colors.accent;
-    case 'celebrating': return colors.success;
-  }
-}
-
-function getCardTint(mood: Mood): string {
-  switch (mood) {
-    case 'shielded': return 'rgba(59,130,246,0.07)';
-    case 'furious':  return 'rgba(239,68,68,0.08)';
-    case 'angry':    return 'rgba(249,115,22,0.08)';
-    default:         return 'transparent';
-  }
-}
+const FIRE_LABEL: Record<Mood, string> = {
+  shielded: 'Dost · korunuyor', celebrating: 'Dost · coşkulu',
+  excited: 'Dost · alevleniyor', happy: 'Dost · güzel yanıyor',
+  neutral: 'Dost · yanıyor', worried: 'Dost · sönmek üzere',
+  sleeping: 'Dost · köze dönüyor', angry: 'Dost · köz', furious: 'Dost · köz',
+};
 
 // ── Component ─────────────────────────────────────────────────────────────────
+
+const FIRE_BG     = '#251D17';
+const FIRE_BORDER = '#3A2F25';
+const FIRE_TEXT   = '#FBF7EF';
+const FIRE_MUTED  = '#9A8F80';
+const FIRE_ACCENT = '#E08456';
+const FIRE_TRACK  = '#3A2F25';
 
 export default function MascotCard({
   percentage, streak, level, streakBroken, shieldActive,
@@ -112,128 +95,156 @@ export default function MascotCard({
   const floatAnim = useRef(new Animated.Value(0)).current;
   const shakeAnim = useRef(new Animated.Value(0)).current;
 
-  const mood     = getMood(percentage, streak, streakBroken, shieldActive);
-  const isAngry  = mood === 'angry' || mood === 'furious';
-  const messages = mascotType === 'campfire' ? CAMPFIRE_MESSAGES : PLANT_MESSAGES;
+  const mood    = getMood(percentage, streak, streakBroken, shieldActive);
+  const isAngry = mood === 'angry' || mood === 'furious';
+  const isFire  = mascotType === 'campfire';
 
   useEffect(() => {
     floatAnim.stopAnimation();
     shakeAnim.stopAnimation();
-
     if (isAngry) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(shakeAnim, { toValue: 6,  duration: 55, useNativeDriver: true }),
-          Animated.timing(shakeAnim, { toValue: -6, duration: 55, useNativeDriver: true }),
-          Animated.timing(shakeAnim, { toValue: 4,  duration: 55, useNativeDriver: true }),
-          Animated.timing(shakeAnim, { toValue: -4, duration: 55, useNativeDriver: true }),
-          Animated.timing(shakeAnim, { toValue: 0,  duration: 100, useNativeDriver: true }),
-          Animated.delay(1000),
-        ]),
-      ).start();
+      Animated.loop(Animated.sequence([
+        Animated.timing(shakeAnim, { toValue: 5,  duration: 55, useNativeDriver: true }),
+        Animated.timing(shakeAnim, { toValue: -5, duration: 55, useNativeDriver: true }),
+        Animated.timing(shakeAnim, { toValue: 3,  duration: 55, useNativeDriver: true }),
+        Animated.timing(shakeAnim, { toValue: -3, duration: 55, useNativeDriver: true }),
+        Animated.timing(shakeAnim, { toValue: 0,  duration: 100, useNativeDriver: true }),
+        Animated.delay(1200),
+      ])).start();
     } else {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(floatAnim, { toValue: -6, duration: 1600, useNativeDriver: true }),
-          Animated.timing(floatAnim, { toValue: 0,  duration: 1600, useNativeDriver: true }),
-        ]),
-      ).start();
+      Animated.loop(Animated.sequence([
+        Animated.timing(floatAnim, { toValue: -5, duration: 1800, useNativeDriver: true }),
+        Animated.timing(floatAnim, { toValue: 0,  duration: 1800, useNativeDriver: true }),
+      ])).start();
     }
   }, [isAngry, mascotType]);
+
+  const stage     = globalStage(streak, streakBroken, shieldActive);
+  const moodMsg   = (isFire ? CAMPFIRE_MSG : PLANT_MSG)[mood];
+  const moodLabel = (isFire ? FIRE_LABEL : PLANT_LABEL)[mood];
+  const showFreeze = streakBroken && !shieldActive && freezeTokens > 0;
+
+  // streak progress bar: stage 0-4 → 0–100%
+  const stageBarPct = Math.min(Math.max(stage, 0), 4) * 25;
 
   const mascotTransform = isAngry
     ? [{ translateX: shakeAnim }]
     : [{ translateY: floatAnim }];
 
-  const stage       = globalStage(streak, streakBroken, shieldActive);
-  const streakBadge = getStreakBadge(streak, streakBroken, shieldActive);
-  const moodMsg     = messages[mood];
-  const moodColor   = getMoodColor(mood, colors);
-  const cardTint    = getCardTint(mood);
-  const borderColor = (isAngry || mood === 'shielded') ? moodColor : colors.border;
-  const showFreezeBtn = streakBroken && !shieldActive && freezeTokens > 0;
+  // ── Campfire card (dark) ──
+  if (isFire) {
+    return (
+      <View style={[s.card, { backgroundColor: FIRE_BG, borderColor: FIRE_BORDER }]}>
+        {/* warm radial glow behind mascot */}
+        <View style={s.fireGlowBg} pointerEvents="none" />
+        <View style={s.mascotSide}>
+          <Animated.View style={{ transform: mascotTransform }}>
+            <Campfire stage={stage} size={110} animate />
+          </Animated.View>
+        </View>
+        <View style={s.infoSide}>
+          <Text style={[s.typeLabel, { color: FIRE_MUTED }]}>{moodLabel}</Text>
+          <Text style={[s.moodMsg, { color: FIRE_TEXT }]}>{moodMsg}</Text>
+          <View style={s.metaRow}>
+            <Text style={[s.metaVal, { color: FIRE_ACCENT, fontFamily: 'Georgia' }]}>
+              {streak} gün
+            </Text>
+            <View style={[s.metaSep, { backgroundColor: FIRE_BORDER }]} />
+            <Text style={[s.metaHint, { color: FIRE_MUTED }]}>köz tutmaya devam</Text>
+          </View>
+          <View style={[s.progressBg, { backgroundColor: FIRE_TRACK }]}>
+            <View style={[s.progressFill, { width: `${stageBarPct}%` as any, backgroundColor: FIRE_ACCENT }]} />
+          </View>
+          {showFreeze && (
+            <TouchableOpacity
+              onPress={onUseFreeze}
+              style={s.freezeBtn}
+            >
+              <Text style={[s.freezeText, { color: '#3b82f6' }]}>
+                🛡️ Dondur ({freezeTokens} hak)
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    );
+  }
 
+  // ── Plant card (light) ──
   return (
-    <View style={[
-      s.card,
-      { borderColor },
-      cardTint !== 'transparent' && { backgroundColor: cardTint },
-      cardTint === 'transparent' && { backgroundColor: colors.bgContent },
-    ]}>
-      {/* ── Mascot ── */}
-      <View style={s.scene}>
+    <View style={[s.card, { backgroundColor: colors.bgContent, borderColor: colors.hairline }]}>
+      {/* bottom gradient tint */}
+      <View style={[s.plantGlowBg, { backgroundColor: colors.primarySoft }]} pointerEvents="none" />
+      <View style={s.mascotSide}>
         <Animated.View style={{ transform: mascotTransform }}>
-          {mascotType === 'campfire'
-            ? <Campfire stage={stage} size={90} animate />
-            : <Plant    stage={stage} size={90} animate />}
+          <Plant stage={stage} size={110} animate />
         </Animated.View>
       </View>
-
-      {/* ── Info ── */}
-      <View style={s.info}>
-        <Text style={[s.moodText, { color: moodColor }]}>{moodMsg}</Text>
-
-        {streakBadge && (
-          <View style={[s.badge, { backgroundColor: shieldActive ? '#3b82f620' : streakBroken ? '#ef444420' : '#f9731620' }]}>
-            <Text style={[s.badgeText, { color: shieldActive ? '#3b82f6' : streakBroken ? '#ef4444' : '#f97316' }]}>
-              {streakBadge}
-            </Text>
-          </View>
-        )}
-
-        {showFreezeBtn && (
+      <View style={s.infoSide}>
+        <Text style={[s.typeLabel, { color: colors.textMuted }]}>{moodLabel}</Text>
+        <Text style={[s.moodMsg, { color: colors.textMain }]}>{moodMsg}</Text>
+        <View style={s.metaRow}>
+          <Text style={[s.metaVal, { color: colors.primary, fontFamily: 'Georgia' }]}>
+            {streak} gün
+          </Text>
+          <View style={[s.metaSep, { backgroundColor: colors.border }]} />
+          <Text style={[s.metaHint, { color: colors.textMuted }]}>
+            {stage < 4
+              ? `${(4 - stage) * 7} gün sonra çiçek`
+              : 'Tam çiçeklenme!'
+            }
+          </Text>
+        </View>
+        <View style={[s.progressBg, { backgroundColor: colors.bgPanel }]}>
+          <View style={[s.progressFill, { width: `${stageBarPct}%` as any, backgroundColor: colors.primary }]} />
+        </View>
+        {showFreeze && (
           <TouchableOpacity
-            style={[s.freezeBtn, { backgroundColor: '#3b82f620', borderColor: '#3b82f6' }]}
             onPress={onUseFreeze}
+            style={s.freezeBtn}
           >
-            <Text style={[s.freezeBtnText, { color: '#3b82f6' }]}>
+            <Text style={[s.freezeText, { color: '#3b82f6' }]}>
               🛡️ Dondur ({freezeTokens} hak)
             </Text>
           </TouchableOpacity>
         )}
-
-        <Text style={[s.stageText, { color: colors.textMuted }]}>
-          Seviye {level}
-        </Text>
-
-        <View style={[s.progressBg, { backgroundColor: colors.border }]}>
-          <View style={[s.progressFill, { width: `${percentage}%` as any, backgroundColor: moodColor }]} />
-        </View>
-        <Text style={[s.progressLabel, { color: colors.textMuted }]}>
-          Bugünkü ilerleme: %{percentage}
-        </Text>
       </View>
     </View>
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-
 const s = StyleSheet.create({
   card: {
-    borderRadius: 22, borderWidth: 1,
-    padding: 18, marginBottom: 16,
-    flexDirection: 'row', alignItems: 'center', gap: 16,
+    borderRadius: 28, borderWidth: 1,
+    flexDirection: 'row', alignItems: 'flex-end',
+    padding: 16, gap: 14,
+    overflow: 'hidden', marginBottom: 0,
   },
-  scene: {
-    width: 90, alignItems: 'center', justifyContent: 'center',
+  fireGlowBg: {
+    position: 'absolute', bottom: -40, left: '50%',
+    width: 280, height: 200, borderRadius: 140,
+    backgroundColor: 'transparent',
+    // radial glow not possible without LinearGradient, kept minimal
   },
-  info: { flex: 1, gap: 6 },
-  moodText: { fontSize: 13, fontWeight: '700', lineHeight: 18 },
-  badge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10, paddingVertical: 3,
-    borderRadius: 10,
+  plantGlowBg: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    height: 80, opacity: 0.5,
   },
-  badgeText: { fontSize: 12, fontWeight: '700' },
+  mascotSide: { flexShrink: 0 },
+  infoSide: { flex: 1, paddingBottom: 6, gap: 6 },
+  typeLabel: { fontSize: 11, letterSpacing: 0.4, textTransform: 'uppercase' },
+  moodMsg: { fontSize: 17, lineHeight: 22, fontFamily: 'Georgia' },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  metaVal: { fontSize: 16 },
+  metaSep: { width: 1, height: 12 },
+  metaHint: { fontSize: 12 },
+  progressBg: { height: 4, borderRadius: 99, overflow: 'hidden' },
+  progressFill: { height: 4, borderRadius: 99 },
   freezeBtn: {
     alignSelf: 'flex-start',
     paddingHorizontal: 12, paddingVertical: 6,
-    borderRadius: 12, borderWidth: 1,
+    backgroundColor: 'rgba(59,130,246,0.12)',
+    borderRadius: 12,
   },
-  freezeBtnText: { fontSize: 12, fontWeight: '700' },
-  stageText: { fontSize: 11, fontWeight: '600' },
-  progressBg: { height: 4, borderRadius: 2, overflow: 'hidden', marginTop: 2 },
-  progressFill: { height: 4, borderRadius: 2 },
-  progressLabel: { fontSize: 10 },
+  freezeText: { fontSize: 12, fontWeight: '700' },
 });
