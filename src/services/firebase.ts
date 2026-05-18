@@ -2,7 +2,6 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import {
   initializeAuth,
   getAuth,
-  getReactNativePersistence,
   signInWithPopup,
   GoogleAuthProvider,
   onAuthStateChanged,
@@ -11,6 +10,10 @@ import {
   Auth,
 } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+// getReactNativePersistence is present in the RN bundle but absent from TS types in this version
+const { getReactNativePersistence } = require('firebase/auth') as {
+  getReactNativePersistence: (storage: typeof AsyncStorage) => any;
+};
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 import { Habit } from '../context/AppContext';
 

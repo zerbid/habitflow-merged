@@ -14,7 +14,7 @@ import Svg, {
   Circle, Ellipse, Rect, G, Path,
 } from 'react-native-svg';
 
-const AnimatedG = Animated.createAnimatedComponent(G);
+const AnimatedG = Animated.createAnimatedComponent(G) as any;
 
 export interface PlantProps {
   /** -1 wilted · 0 dormant · 1 sprout · 2 young · 3 growing · 4 full */

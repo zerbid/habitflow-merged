@@ -14,7 +14,7 @@ import Svg, {
   Circle, Ellipse, Rect, G, Path,
 } from 'react-native-svg';
 
-const AnimatedG    = Animated.createAnimatedComponent(G);
+const AnimatedG    = Animated.createAnimatedComponent(G) as any;
 const AnimatedView = Animated.View;
 
 export interface CampfireProps {
