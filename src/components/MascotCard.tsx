@@ -2,6 +2,9 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
 import { Colors } from '../theme/colors';
 import { MascotType } from '../context/AppContext';
+import { MascotStage } from '../utils/helpers';
+import Plant from './mascots/Plant';
+import Campfire from './mascots/Campfire';
 
 interface Props {
   percentage: number;
@@ -17,24 +20,22 @@ interface Props {
 
 type Mood = 'celebrating' | 'excited' | 'happy' | 'neutral' | 'worried' | 'sleeping' | 'angry' | 'furious' | 'shielded';
 
-// ── Plant & Fire helpers ──────────────────────────────────────────────────────
-
-function getPlant(level: number) {
-  if (level <= 2)  return { emoji: '🌱', name: 'Filiz' };
-  if (level <= 5)  return { emoji: '🌿', name: 'Fide' };
-  if (level <= 9)  return { emoji: '🪴', name: 'Saksı Bitkisi' };
-  if (level <= 14) return { emoji: '🌲', name: 'Çam' };
-  return                  { emoji: '🌳', name: 'Büyük Ağaç' };
+function globalStage(streak: number, streakBroken: boolean, shieldActive: boolean): MascotStage {
+  if (streakBroken && !shieldActive) return -1;
+  if (streak === 0) return 0;
+  if (streak <= 2)  return 1;
+  if (streak <= 6)  return 2;
+  if (streak <= 13) return 3;
+  return 4;
 }
 
-function getFire(streak: number, streakBroken: boolean, shieldActive: boolean) {
-  if (shieldActive)  return { emoji: '🛡️🔥',     label: 'Streak koruması aktif!' };
-  if (streakBroken)  return { emoji: '💨',         label: 'Seri söndü...' };
-  if (streak === 0)  return { emoji: '🕯️',         label: null };
-  if (streak <= 2)   return { emoji: '🔥',          label: null };
-  if (streak <= 6)   return { emoji: '🔥🔥',        label: `${streak} günlük seri!` };
-  if (streak <= 13)  return { emoji: '🔥🔥🔥',      label: `${streak} günlük seri! 🌟` };
-  return                    { emoji: '✨🔥✨',       label: `${streak} günlük EFSANE seri! 👑` };
+function getStreakBadge(streak: number, streakBroken: boolean, shieldActive: boolean): string | null {
+  if (shieldActive)  return 'Streak koruması aktif!';
+  if (streakBroken)  return 'Seri söndü...';
+  if (streak <= 2)   return null;
+  if (streak <= 6)   return `${streak} günlük seri!`;
+  if (streak <= 13)  return `${streak} günlük seri! 🌟`;
+  return `${streak} günlük EFSANE seri! 👑`;
 }
 
 // ── Mood derivation ───────────────────────────────────────────────────────────
@@ -50,30 +51,6 @@ function getMood(percentage: number, streak: number, streakBroken: boolean, shie
   if (percentage > 0)            return 'worried';
   return 'sleeping';
 }
-
-const MOOD_FACES: Record<Mood, string> = {
-  shielded:    '😌',
-  celebrating: '🤩',
-  excited:     '😄',
-  happy:       '😊',
-  neutral:     '😐',
-  worried:     '😟',
-  sleeping:    '😴',
-  angry:       '😠',
-  furious:     '🤬',
-};
-
-const MOOD_INDICATORS: Record<Mood, string | null> = {
-  shielded:    '🛡️',
-  celebrating: '🎉',
-  excited:     null,
-  happy:       null,
-  neutral:     null,
-  worried:     null,
-  sleeping:    '💤',
-  angry:       '💢',
-  furious:     '💢⚡',
-};
 
 // ── Personality messages ──────────────────────────────────────────────────────
 
@@ -133,16 +110,16 @@ export default function MascotCard({
   freezeTokens, mascotType, colors, onUseFreeze,
 }: Props) {
   const floatAnim = useRef(new Animated.Value(0)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const glowAnim  = useRef(new Animated.Value(0.6)).current;
   const shakeAnim = useRef(new Animated.Value(0)).current;
 
   const mood     = getMood(percentage, streak, streakBroken, shieldActive);
   const isAngry  = mood === 'angry' || mood === 'furious';
   const messages = mascotType === 'campfire' ? CAMPFIRE_MESSAGES : PLANT_MESSAGES;
-  const pulseDuration = mascotType === 'campfire' ? 400 : 700;
 
   useEffect(() => {
+    floatAnim.stopAnimation();
+    shakeAnim.stopAnimation();
+
     if (isAngry) {
       Animated.loop(
         Animated.sequence([
@@ -157,40 +134,23 @@ export default function MascotCard({
     } else {
       Animated.loop(
         Animated.sequence([
-          Animated.timing(floatAnim, { toValue: -7, duration: 1400, useNativeDriver: true }),
-          Animated.timing(floatAnim, { toValue: 0,  duration: 1400, useNativeDriver: true }),
+          Animated.timing(floatAnim, { toValue: -6, duration: 1600, useNativeDriver: true }),
+          Animated.timing(floatAnim, { toValue: 0,  duration: 1600, useNativeDriver: true }),
         ]),
       ).start();
     }
-
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: mascotType === 'campfire' ? 1.35 : 1.2, duration: pulseDuration, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1.0, duration: pulseDuration, useNativeDriver: true }),
-      ]),
-    ).start();
-
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(glowAnim, { toValue: 1,   duration: pulseDuration, useNativeDriver: true }),
-        Animated.timing(glowAnim, { toValue: 0.4, duration: pulseDuration, useNativeDriver: true }),
-      ]),
-    ).start();
   }, [isAngry, mascotType]);
 
-  const plant      = getPlant(level);
-  const fire       = getFire(streak, streakBroken, shieldActive);
-  const face       = MOOD_FACES[mood];
-  const indicator  = MOOD_INDICATORS[mood];
-  const moodMsg    = messages[mood];
-  const moodColor  = getMoodColor(mood, colors);
-  const cardTint   = getCardTint(mood);
-  const borderColor = (isAngry || mood === 'shielded') ? moodColor : colors.border;
-
-  const plantTransform = isAngry
+  const mascotTransform = isAngry
     ? [{ translateX: shakeAnim }]
     : [{ translateY: floatAnim }];
 
+  const stage       = globalStage(streak, streakBroken, shieldActive);
+  const streakBadge = getStreakBadge(streak, streakBroken, shieldActive);
+  const moodMsg     = messages[mood];
+  const moodColor   = getMoodColor(mood, colors);
+  const cardTint    = getCardTint(mood);
+  const borderColor = (isAngry || mood === 'shielded') ? moodColor : colors.border;
   const showFreezeBtn = streakBroken && !shieldActive && freezeTokens > 0;
 
   return (
@@ -200,38 +160,23 @@ export default function MascotCard({
       cardTint !== 'transparent' && { backgroundColor: cardTint },
       cardTint === 'transparent' && { backgroundColor: colors.bgContent },
     ]}>
-      {/* ── Scene ── */}
+      {/* ── Mascot ── */}
       <View style={s.scene}>
-        <Animated.View style={[s.plantGroup, { transform: plantTransform }]}>
-          {indicator && <Text style={s.indicatorEmoji}>{indicator}</Text>}
-          <Text style={s.plantEmoji}>{plant.emoji}</Text>
-          <Text style={s.faceEmoji}>{face}</Text>
+        <Animated.View style={{ transform: mascotTransform }}>
+          {mascotType === 'campfire'
+            ? <Campfire stage={stage} size={90} animate />
+            : <Plant    stage={stage} size={90} animate />}
         </Animated.View>
-
-        <View style={s.fireColumn}>
-          <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-            <Text style={s.fireEmoji}>{fire.emoji}</Text>
-          </Animated.View>
-          <Animated.View
-            style={[
-              s.fireGlow,
-              {
-                backgroundColor: shieldActive ? '#3b82f6' : streakBroken ? '#64748b' : streak > 0 ? '#f97316' : '#94a3b8',
-                opacity: (streak > 0 && !streakBroken) || shieldActive ? glowAnim : 0.2,
-              },
-            ]}
-          />
-        </View>
       </View>
 
       {/* ── Info ── */}
       <View style={s.info}>
         <Text style={[s.moodText, { color: moodColor }]}>{moodMsg}</Text>
 
-        {fire.label && (
+        {streakBadge && (
           <View style={[s.badge, { backgroundColor: shieldActive ? '#3b82f620' : streakBroken ? '#ef444420' : '#f9731620' }]}>
             <Text style={[s.badgeText, { color: shieldActive ? '#3b82f6' : streakBroken ? '#ef4444' : '#f97316' }]}>
-              {fire.label}
+              {streakBadge}
             </Text>
           </View>
         )}
@@ -248,7 +193,7 @@ export default function MascotCard({
         )}
 
         <Text style={[s.stageText, { color: colors.textMuted }]}>
-          {plant.name} · Seviye {level}
+          Seviye {level}
         </Text>
 
         <View style={[s.progressBg, { backgroundColor: colors.border }]}>
@@ -271,16 +216,8 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 16,
   },
   scene: {
-    width: 90, alignItems: 'center', justifyContent: 'flex-end',
-    flexDirection: 'row', gap: 4,
+    width: 90, alignItems: 'center', justifyContent: 'center',
   },
-  plantGroup: { alignItems: 'center' },
-  indicatorEmoji: { fontSize: 16, marginBottom: 2 },
-  plantEmoji: { fontSize: 40, lineHeight: 44 },
-  faceEmoji:  { fontSize: 22, marginTop: -4 },
-  fireColumn: { alignItems: 'center', justifyContent: 'flex-end' },
-  fireEmoji:  { fontSize: 28, lineHeight: 32 },
-  fireGlow: { width: 28, height: 8, borderRadius: 14, marginTop: -2 },
   info: { flex: 1, gap: 6 },
   moodText: { fontSize: 13, fontWeight: '700', lineHeight: 18 },
   badge: {
